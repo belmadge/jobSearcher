@@ -1,4 +1,4 @@
-name: JobSearcher Daily
+name: JobSearcher Daily Search
 
 on:
   schedule:
