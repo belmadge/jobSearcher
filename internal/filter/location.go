@@ -37,6 +37,13 @@ func ClassifyLocation(j domain.Job) (string, string) {
 	physicalMaceio := containsAny(combined, "maceio", "alagoas")
 	outsideAlagoasState := brazilStateCode.MatchString(l) && !containsAny(l, " al ", "alagoas", "maceio")
 
+	// Prefer explicit workplace metadata over incidental wording in descriptions.
+	explicitRemote := containsAny(w, "remote", "remoto", "remota") || containsAny(l, "remote", "remoto", "remota")
+	explicitHybrid := containsAny(w, "hybrid", "hibrido", "híbrido") || containsAny(l, "hybrid", "hibrido", "híbrido")
+	explicitOnsite := containsAny(w, "onsite", "on site", "in person", "presencial") || containsAny(l, "onsite", "on site", "in person", "presencial")
+	if explicitRemote { hybrid, onsite = false, false }
+	if explicitHybrid { remote, onsite = false, false }
+	if explicitOnsite { remote, hybrid = false, false }
 	if remote && (hybrid || onsite) {
 		return "uncertain_location", "posting contains conflicting remote and physical-workplace signals"
 	}
