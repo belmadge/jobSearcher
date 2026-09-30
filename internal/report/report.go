@@ -10,7 +10,7 @@ func Markdown(jobs []domain.Job, uncertain []domain.Job, rejected, found int, ge
  var b strings.Builder
  b.WriteString("# JobSearcher — resultados da busca\n\n")
  b.WriteString("**Executado em:** "+generatedAt+"\n\n")
- sections:=[]struct{title string;min int}{{"🔥 Alta compatibilidade",80},{"🟡 Compatibilidade possível",60},{"⚪ Compatibilidade abaixo do limite",0}}
+ sections:=[]struct{title string;min int}{{"🔥 Alta compatibilidade",80},{"🟡 Compatibilidade possível",60}}
  for _,section:=range sections{
   fmt.Fprintf(&b,"## %s\n\n",section.title)
   count:=0
