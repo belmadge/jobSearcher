@@ -79,9 +79,9 @@ func Evaluate(j domain.Job) domain.Job {
 	}
 
 	w, l, d := norm(j.WorkplaceType), norm(j.Location), norm(j.Description)
-	remote := containsAny(w, "remote") || containsAny(l, "remote") || containsAny(d, "remote work", "remote role", "remote position", "fully remote", "work remotely")
-	hybrid := containsAny(w, "hybrid") || containsAny(l, "hybrid") || containsAny(d, "hybrid work", "hybrid role", "hybrid position", "work hybrid")
-	onsite := containsAny(w, "onsite", "on site", "in person") || containsAny(d, "onsite", "on site", "in person", "office-based", "office based", "must work from the office")
+	remote := containsAny(w, "remote", "remoto", "remota") || containsAny(l, "remote", "remoto", "remota") || containsAny(d, "remote work", "remote role", "remote position", "fully remote", "work remotely", "trabalho remoto", "vaga remota", "vaga remoto")
+	hybrid := containsAny(w, "hybrid", "hibrido", "híbrido") || containsAny(l, "hybrid", "hibrido", "híbrido") || containsAny(d, "hybrid work", "hybrid role", "hybrid position", "work hybrid", "trabalho hibrido", "trabalho híbrido", "vaga híbrida", "vaga hibrida")
+	onsite := containsAny(w, "onsite", "on site", "in person", "presencial") || containsAny(d, "onsite", "on site", "in person", "office-based", "office based", "must work from the office", "presencial", "trabalho presencial", "modelo presencial")
 	if remote == hybrid && !onsite {
 		j.WorkplaceType = "unknown"
 		return j
