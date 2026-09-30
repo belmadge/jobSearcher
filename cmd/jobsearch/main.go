@@ -19,6 +19,7 @@ func runSearch(ctx context.Context,profile config.Profile,search config.Search,b
  tokens,sites=unique(tokens),unique(sites)
  query:=sources.Query{Terms:search.PreferredTitles,Location:search.Location,BoardTokens:tokens,LeverSites:sites}
  jobs,err:=fetchSources(ctx,sourceName,query)
+ found:=len(jobs)
  if err!=nil{fmt.Fprintln(os.Stderr,"source warning:",err)}
  if len(jobs)==0&&err!=nil{return err}
  accepted:=[]domain.Job{};uncertain:=[]domain.Job{};rejected:=0;irrelevant:=0;stale:=0;outsideSeniority:=0;lowFit:=0
@@ -51,9 +52,9 @@ func runSearch(ctx context.Context,profile config.Profile,search config.Search,b
  }
  accepted=dedupe.Jobs(accepted);sort.SliceStable(accepted,func(i,j int)bool{return accepted[i].FitScore>accepted[j].FitScore})
  if !dryRun{if err:=os.MkdirAll("data",0755);err!=nil{return err};repo,err:=sqlite.Open(filepath.Join("data","jobsearch.db"));if err!=nil{return err};defer repo.Close();for i:=range accepted{if _,err:=repo.SaveJob(ctx,&accepted[i]);err!=nil{return err}};for i:=range uncertain{if _,err:=repo.SaveJob(ctx,&uncertain[i]);err!=nil{return err}}}
- now:=time.Now().Format("2006-01-02");if err:=os.MkdirAll("reports",0755);err!=nil{return err};if err:=os.WriteFile(filepath.Join("reports",now+".md"),[]byte(report.Markdown(accepted,uncertain,rejected,len(jobs),irrelevant,outsideSeniority,lowFit,stale,now)),0644);err!=nil{return err}
+ now:=time.Now().Format("2006-01-02");if err:=os.MkdirAll("reports",0755);err!=nil{return err};if err:=os.WriteFile(filepath.Join("reports",now+".md"),[]byte(report.Markdown(accepted,uncertain,rejected,found,irrelevant,outsideSeniority,lowFit,stale,now)),0644);err!=nil{return err}
  data,err:=json.MarshalIndent(map[string]any{"generated_at":time.Now().UTC().Format(time.RFC3339),"jobs":accepted,"uncertain":uncertain},"","  ");if err!=nil{return err};if err:=os.WriteFile(filepath.Join("reports",now+".json"),data,0644);err!=nil{return err}
- fmt.Printf("Vagas encontradas: %d\nElegíveis: %d\nIncertas: %d\nRejeitadas por localização: %d\nFora do perfil: %d\nSenioridade fora do alvo: %d\nAbaixo do score mínimo: %d\nAntigas: %d\n",len(jobs),len(accepted),len(uncertain),rejected,irrelevant,outsideSeniority,lowFit,stale);for _,j:=range accepted{fmt.Printf("%3d  %-45s  %s  %s\n",j.FitScore,j.Title,j.Company,j.URL)};return nil
+ fmt.Printf("Vagas encontradas: %d\nElegíveis: %d\nIncertas: %d\nRejeitadas por localização: %d\nFora do perfil: %d\nSenioridade fora do alvo: %d\nAbaixo do score mínimo: %d\nAntigas: %d\n",found,len(accepted),len(uncertain),rejected,irrelevant,outsideSeniority,lowFit,stale);for _,j:=range accepted{fmt.Printf("%3d  %-45s  %s  %s\n",j.FitScore,j.Title,j.Company,j.URL)};return nil
 }
 func fetchSources(ctx context.Context,name string,q sources.Query)([]domain.Job,error){
  if name=="mock"{return (sources.Mock{}).FetchJobs(ctx,q)}
