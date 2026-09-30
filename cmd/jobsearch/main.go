@@ -8,8 +8,8 @@ func main(){if err:=run(context.Background(),os.Args[1:]);err!=nil{fmt.Fprintln(
 func run(ctx context.Context,args []string)error{
  command,sourceName,dryRun:="run","all",false
  if len(args)>0{command=args[0];for _,arg:=range args[1:]{if arg=="--dry-run"{dryRun=true};if strings.HasPrefix(arg,"--source="){sourceName=strings.TrimPrefix(arg,"--source=")}}}
- if err:=config.LoadDotEnv(".env");err!=nil{return err};profile,err:=config.Load[config.Profile]("config/profile.json");if err!=nil{return err};search,err:=config.Load[config.Search]("config/search.json");if err!=nil{return err};boards,err:=config.Load[config.Boards]("config/boards.json");if err!=nil{return err}
- switch command{case "run":return runSearch(ctx,profile,search,boards,sourceName,dryRun);case "report":return latestReport();case "stats":return stats(ctx);case "--help","help":fmt.Println("jobsearch run [--dry-run] [--source=all|greenhouse|lever|remoteok|remotive|programathor|himalayas|mock]");fmt.Println("jobsearch report");fmt.Println("jobsearch stats");return nil;default:return fmt.Errorf("unknown command %q; use --help",command)}
+ if err:=config.LoadDotEnv(".env");err!=nil{return err};boards,err:=config.Load[config.Boards]("config/boards.json");if err!=nil{return err}
+ switch command{case "web":return startWebServer(ctx,boards);case "run":profile,e:=config.Load[config.Profile]("config/profile.json");if e!=nil{return e};search,e:=config.Load[config.Search]("config/search.json");if e!=nil{return e};return runSearch(ctx,profile,search,boards,sourceName,dryRun);case "report":return latestReport();case "stats":return stats(ctx);case "--help","help":fmt.Println("jobsearch web");fmt.Println("jobsearch run [--dry-run] [--source=all|greenhouse|lever|remoteok|remotive|programathor|himalayas|mock]");fmt.Println("jobsearch report");fmt.Println("jobsearch stats");return nil;default:return fmt.Errorf("unknown command %q; use --help",command)}
 }
 func runSearch(ctx context.Context,profile config.Profile,search config.Search,boards config.Boards,sourceName string,dryRun bool)error{
  tokens:=[]string{};sites:=[]string{}
