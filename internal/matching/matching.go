@@ -110,6 +110,7 @@ var irrelevantTitleTerms = []string{
 	"business development", "account executive", "account manager", "finance manager", "legal",
 	"copywriter", "writer", "technician", "surveyor", "data entry", "office assistant",
 	"frontend", "front-end", "front end", "mobile", "ios", "android", "react native",
+	"shopify", "salesforce developer", "wordpress developer", "magento", "drupal",
 	"qa engineer", "quality assurance", "sdet", "test engineer", "data scientist",
 	"machine learning engineer", "ml engineer", "data engineer", "data analyst", "ux ", "ui ",
 }
