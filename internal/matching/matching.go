@@ -121,17 +121,23 @@ func IsRelevant(j domain.Job) bool {
 	for _, term := range irrelevantTitleTerms {
 		if strings.Contains(title, term) { return false }
 	}
+	// Explicit engineering targets are relevant even when the posting uses generic
+	// terminology in the description. Compatibility is decided later by Score.
 	for _, term := range relevantTitleTerms {
-		if strings.Contains(title, term) {
-			if strings.Contains(term, "software engineer") || strings.Contains(term, "software developer") {
-			all := strings.ToLower(strings.Join([]string{j.Title, j.Description, j.Requirements}, " "))
-				return mentions(all, "Go") || mentions(all, "Golang") || mentions(all, "Backend") || mentions(all, "API") || mentions(all, "PostgreSQL")
-			}
-			return true
-		}
+		if strings.Contains(title, term) { return true }
 	}
+	// For generic "Engineer/Developer" titles, require a backend/platform signal
+	// to avoid admitting unrelated engineering disciplines.
 	all := strings.ToLower(strings.Join([]string{j.Title, j.Description, j.Requirements}, " "))
-	return mentions(all, "Go") || mentions(all, "Golang") || mentions(all, "Backend") || mentions(all, "API")
+	backendSignals := []string{
+		"backend", "back-end", "api", "apis", "service", "services", "microservice",
+		"distributed systems", "platform", "cloud", "infrastructure", "integration",
+		"go", "golang", "postgresql", "rest", "grpc", "message queue",
+	}
+	for _, signal := range backendSignals {
+		if strings.Contains(all, signal) { return true }
+	}
+	return false
 }
 
 // Score uses explicit required language for penalties. Missing optional or unmentioned profile skills do not reduce the score.
@@ -154,9 +160,9 @@ func Score(j *domain.Job, p config.Profile) {
 	j.ResponsibilityMatch = termCoverage(all, respTerms)
 	cloudTerms := []string{"aws", "cloud", "kubernetes", "docker", "terraform", "infrastructure"}
 	j.CloudMatch = termCoverage(all, cloudTerms)
-	j.DomainMatch = termCoverage(all, p.Domains)
-	j.LanguageMatch = termCoverage(all, []string{"english"})
-	j.AIMatch = termCoverage(all, p.EmergingSkills)
+	j.DomainMatch = neutralCoverage(all, p.Domains)
+	j.LanguageMatch = neutralCoverage(all, []string{"english"})
+	j.AIMatch = neutralCoverage(all, p.EmergingSkills)
 	j.SeniorityMatch, j.SeniorityReason = inferSeniority(*j)
 	j.Seniority = seniorityLabel(j.SeniorityMatch, j.SeniorityReason)
 
@@ -265,4 +271,15 @@ func termCoverage(text string, terms []string) int {
 	hits := 0
 	for _, term := range terms { if mentions(text, term) { hits++ } }
 	return hits * 100 / len(terms)
+}
+
+// neutralCoverage treats an unmentioned category as "unknown" rather than as a
+// mismatch. This prevents a normal backend job from losing points merely because
+// it does not mention fintech, English, or AI in the posting.
+func neutralCoverage(text string, terms []string) int {
+	if len(terms) == 0 { return 50 }
+	for _, term := range terms {
+		if mentions(text, term) { return termCoverage(text, terms) }
+	}
+	return 50
 }
