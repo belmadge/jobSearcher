@@ -1,0 +1,78 @@
+package filter
+
+import (
+	"jobsearcher/internal/domain"
+	"regexp"
+	"strings"
+)
+
+var words = regexp.MustCompile(`[a-z0-9]+`)
+
+func norm(s string) string {
+	s = strings.ToLower(s)
+	s = strings.NewReplacer("\u00e1", "a", "\u00e0", "a", "\u00e2", "a", "\u00e3", "a", "\u00e9", "e", "\u00ea", "e", "\u00ed", "i", "\u00f3", "o", "\u00f4", "o", "\u00f5", "o", "\u00fa", "u", "\u00e7", "c").Replace(s)
+	return strings.Join(words.FindAllString(s, -1), " ")
+}
+
+func containsAny(s string, values ...string) bool {
+	for _, v := range values {
+		if strings.Contains(s, norm(v)) {
+			return true
+		}
+	}
+	return false
+}
+
+// ClassifyLocation conservatively accepts only explicitly eligible locations.
+func ClassifyLocation(j domain.Job) (string, string) {
+	w, l := norm(j.WorkplaceType), norm(j.Location)
+	d := norm(j.Description)
+	combined := l + " " + d
+	remote := containsAny(w, "remote") || containsAny(l, "remote") || containsAny(d, "remote")
+	hybrid := containsAny(w, "hybrid") || containsAny(l, "hybrid") || containsAny(d, "hybrid")
+	onsite := containsAny(w, "onsite", "on site", "in person", "office") || containsAny(d, "onsite", "on site", "in person")
+	physicalMaceio := containsAny(combined, "maceio", "alagoas")
+	if (remote && (hybrid || onsite)) || (!remote && !hybrid && !onsite) {
+		return "uncertain_location", "workplace type or physical location is unclear"
+	}
+	if remote {
+		if containsAny(l, "united states", "usa", "canada", "europe", "united kingdom", " uk ") || containsAny(combined,
+			"united states only", "us only", "usa only", "europe only", "uk only", "united kingdom only", "canada only",
+			"must be located in the united states", "must reside in the united states", "must be based in the united states",
+			"candidates must reside in the united states", "candidates must be located in the united states",
+			"must be located in the us", "must reside in the us", "must be based in the us",
+			"must reside in canada", "must be located in europe", "must reside in europe",
+			"worldwide except brazil", "worldwide excluding brazil", "excluding brazil", "except brazil") {
+			return "rejected_location", "remote role is explicitly restricted to an incompatible region"
+		}
+		if containsAny(combined, "brazil only", "brasil only", "brazil", "brasil", "latam", "latin america", "south america", "worldwide", "global", "americas") {
+			return "approved", "remote scope explicitly includes Brazil or a broader eligible region"
+		}
+		return "uncertain_location", "remote work is stated without an eligible geographic scope"
+	}
+	if physicalMaceio && containsAny(combined, "brazil", "brasil", "alagoas", "maceio") {
+		return "approved", "physical location is Maceio/Alagoas"
+	}
+	if hybrid || onsite || physicalMaceio {
+		return "rejected_location", "onsite or hybrid physical location is not Maceio/Alagoas"
+	}
+	return "uncertain_location", "location could not be determined"
+}
+
+func Evaluate(j domain.Job) domain.Job {
+	decision, reason := ClassifyLocation(j)
+	j.LocationReason = reason
+	switch decision {
+	case "approved": j.LocationEligible = domain.LocationEligible
+	case "rejected_location": j.LocationEligible = domain.LocationRejected
+	default: j.LocationEligible = domain.LocationUnknown
+	}
+	w, l, d := norm(j.WorkplaceType), norm(j.Location), norm(j.Description)
+	remote := containsAny(w, "remote") || containsAny(l, "remote") || containsAny(d, "remote")
+	hybrid := containsAny(w, "hybrid") || containsAny(l, "hybrid") || containsAny(d, "hybrid")
+	 onsite := containsAny(w, "onsite", "on site", "in person", "office") || containsAny(d, "onsite", "on site", "in person")
+	if remote == hybrid && !onsite { j.WorkplaceType = "unknown"; return j }
+	if onsite && (remote || hybrid) { j.WorkplaceType = "unknown"; return j }
+	switch { case remote: j.WorkplaceType = "remote"; case hybrid: j.WorkplaceType = "hybrid"; case onsite: j.WorkplaceType = "onsite"; default: j.WorkplaceType = "unknown" }
+	return j
+}

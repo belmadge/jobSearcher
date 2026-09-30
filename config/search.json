@@ -1,27 +1,6 @@
 {
-  "preferred_keywords": [
-    "Go", "Golang", "Backend", "Backend Developer", "Backend Engineer",
-    "Software Engineer", "API", "Golang Developer", "Platform Engineer"
-  ],
-  "secondary_keywords": [
-    "AWS", "PostgreSQL", "RabbitMQ", "GraphQL", "Docker",
-    "Kubernetes", "Terraform", "Datadog", "CI/CD", "AI Agents"
-  ],
-  "excluded_keywords": [
-    "Senior", "Staff", "Principal", "Lead", "Engineering Manager",
-    "Director", "Architect", "Android", "iOS", "Frontend-only",
-    "Data Scientist", "Data Analyst", "QA-only", "DevOps-only"
-  ],
-  "minimum_fit_score": 60,
-  "high_fit_score": 80,
-  "freshness_days": 7,
-  "max_jobs_per_source": 100,
-  "remote_terms": [
-    "remote", "remoto", "work from home", "home office",
-    "fully remote", "100% remote"
-  ],
-  "allowed_physical_location_terms": [
-    "Maceió", "Maceio", "Maceió - AL", "Maceio - AL",
-    "Alagoas", "AL"
-  ]
+  "location": "Maceió, Alagoas, Brazil",
+  "remote_allowed": ["Brazil", "LATAM", "South America", "Worldwide", "Americas"],
+  "preferred_titles": ["Backend Developer", "Backend Engineer", "Software Engineer", "Software Engineer II", "Go Developer", "Golang Developer", "API Engineer", "Platform Engineer", "Cloud Backend Engineer", "Distributed Systems Engineer", "Integration Engineer"],
+  "minimum_fit_score": 60
 }

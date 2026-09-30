@@ -1,0 +1,117 @@
+package matching
+
+import (
+	"regexp"
+	"strings"
+
+	"jobsearcher/internal/config"
+	"jobsearcher/internal/domain"
+)
+
+var techAliases = map[string][]string{
+	"go": {"go", "golang"},
+	"postgresql": {"postgresql", "postgres"},
+	"ci/cd": {"ci/cd", "continuous integration", "continuous delivery", "continuous integration and continuous delivery"},
+	"observability": {"observability", "monitoring", "tracing"},
+	"aws": {"aws", "amazon web services"},
+	"api": {"api", "apis", "backend api", "backend apis", "rest api", "rest apis"},
+}
+
+var requirementTechs = []string{"Go", "PostgreSQL", "SQL", "AWS", "GCP", "Azure", "RabbitMQ", "GraphQL", "Docker", "Kubernetes", "Terraform", "CI/CD", "Datadog", "Observability", "API", "Redis", "Python", "Java"}
+var cueSplit = regexp.MustCompile(`[\n.;]+`)
+var yearsExperience = regexp.MustCompile(`\b\d+\+?\s+years?\b`)
+
+func canonical(term string) string {
+	lower := strings.ToLower(strings.TrimSpace(term))
+	for key, aliases := range techAliases { for _, alias := range aliases { if lower == alias { return key } } }
+	return lower
+}
+
+func mentions(text, term string) bool {
+	canonicalTerm := canonical(term)
+	aliases := techAliases[canonicalTerm]
+	if len(aliases) == 0 { aliases = []string{term} }
+	text = strings.ToLower(text)
+	for _, alias := range aliases {
+		pattern := `(?i)(^|[^a-z0-9])` + regexp.QuoteMeta(strings.ToLower(alias)) + `($|[^a-z0-9])`
+		if regexp.MustCompile(pattern).MatchString(text) { return true }
+	}
+	return false
+}
+
+func containsCue(sentence string, cues ...string) bool {
+	s := strings.ToLower(sentence)
+	for _, cue := range cues { if strings.Contains(s, cue) { return true } }
+	return false
+}
+
+func classifyRequirements(text string) (must, nice []string) {
+	for _, sentence := range cueSplit.Split(text, -1) {
+		s := strings.ToLower(sentence)
+		isMust := containsCue(s, "required", "must have", "must-have", "minimum", "strong experience") || (yearsExperience.MatchString(s) && strings.Contains(s, "experience"))
+		isNice := containsCue(s, "nice to have", "nice-to-have", "preferred", "bonus", "plus")
+		for _, term := range requirementTechs {
+			if !mentions(sentence, term) { continue }
+			if isMust { must = appendUnique(must, term) } else if isNice { nice = appendUnique(nice, term) }
+		}
+	}
+	return must, nice
+}
+
+func appendUnique(items []string, item string) []string {
+	for _, existing := range items { if canonical(existing) == canonical(item) { return items } }
+	return append(items, item)
+}
+
+func clamp(v, low, high int) int { if v < low { return low }; if v > high { return high }; return v }
+
+// Score uses explicit required language for penalties. Missing optional or unmentioned profile skills do not reduce the score.
+func Score(j *domain.Job, p config.Profile) {
+	all := strings.Join([]string{j.Title, j.Description, j.Requirements}, " ")
+	matched := []string{}
+	for _, skill := range p.Technologies { if mentions(all, skill) { matched = appendUnique(matched, skill) } }
+	required, nice := classifyRequirements(strings.Join([]string{j.Description, j.Requirements}, " "))
+	for _, term := range required {
+		inProfile := false
+		for _, skill := range p.Technologies { if canonical(skill) == canonical(term) { inProfile = true; break } }
+		if inProfile && mentions(all, term) { j.MustHaveMatch = appendUnique(j.MustHaveMatch, term) } else { j.MustHaveMissing = appendUnique(j.MustHaveMissing, term) }
+	}
+	for _, term := range nice {
+		for _, skill := range p.Technologies { if canonical(skill) == canonical(term) && mentions(all, term) { j.NiceToHaveMatch = appendUnique(j.NiceToHaveMatch, term) } }
+	}
+	j.TechnicalMatch = clamp(40+len(matched)*10-len(j.MustHaveMissing)*20, 0, 100)
+
+	respTerms := []string{"backend", "api", "service", "distributed systems", "integration"}
+	j.ResponsibilityMatch = termCoverage(all, respTerms)
+	cloudTerms := []string{"aws", "cloud", "kubernetes", "docker", "terraform", "infrastructure"}
+	j.CloudMatch = termCoverage(all, cloudTerms)
+	j.DomainMatch = termCoverage(all, p.Domains)
+	j.LanguageMatch = termCoverage(all, []string{"english"})
+	j.AIMatch = termCoverage(all, p.EmergingSkills)
+	level := strings.ToLower(j.Title + " " + j.Seniority)
+	switch {
+	case strings.Contains(level, "staff") || strings.Contains(level, "principal") || strings.Contains(level, "director") || strings.Contains(level, "manager") || strings.Contains(level, "lead"):
+		j.SeniorityMatch = 10
+	case strings.Contains(level, "senior"):
+		j.SeniorityMatch = 55
+	case strings.Contains(level, "junior") || strings.Contains(level, "associate") || strings.Contains(level, "mid") || strings.Contains(level, "software engineer") || strings.Contains(level, "pleno"):
+		j.SeniorityMatch = 85
+	default:
+		j.SeniorityMatch = 60
+	}
+	w := p.Weights
+	j.FitScore = clamp((j.TechnicalMatch*w.Technical+j.ResponsibilityMatch*w.Responsibility+j.SeniorityMatch*w.Seniority+j.CloudMatch*w.Cloud+j.DomainMatch*w.Domain+j.LanguageMatch*w.Language+j.AIMatch*w.AI)/100, 0, 100)
+	j.Gaps = append([]string(nil), j.MustHaveMissing...)
+	if len(matched) > 0 { j.Reasons = append(j.Reasons, "Profile technology overlap: "+strings.Join(matched, ", ")) }
+	if len(j.MustHaveMatch) > 0 { j.Reasons = append(j.Reasons, "Required skills found: "+strings.Join(j.MustHaveMatch, ", ")) }
+	if len(j.MustHaveMissing) > 0 { j.Reasons = append(j.Reasons, "Required skills missing: "+strings.Join(j.MustHaveMissing, ", ")) }
+	if len(j.NiceToHaveMatch) > 0 { j.Reasons = append(j.Reasons, "Preferred skills found: "+strings.Join(j.NiceToHaveMatch, ", ")) }
+	if j.ResponsibilityMatch >= 40 { j.Reasons = append(j.Reasons, "Backend/API responsibilities are present") }
+}
+
+func termCoverage(text string, terms []string) int {
+	if len(terms) == 0 { return 0 }
+	hits := 0
+	for _, term := range terms { if mentions(text, term) { hits++ } }
+	return hits * 100 / len(terms)
+}
