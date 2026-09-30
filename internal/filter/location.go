@@ -56,6 +56,11 @@ func ClassifyLocation(j domain.Job) (string, string) {
 		if containsAny(combined, "brazil only", "brasil only", "brazil", "brasil", "latam", "latin america", "south america", "worldwide", "global", "americas") {
 			return "approved", "remote scope explicitly includes Brazil or a broader eligible region"
 		}
+		// A specific remote location in an ineligible country is treated as a geographic restriction.
+		// Keep generic "Remote" postings eligible because they do not establish a country restriction.
+		if containsAny(l, "canada", "united states", "usa", "united kingdom", "uk", "europe", "australia", "new zealand", "singapore") {
+			return "rejected_location", "remote posting is tied to a country or region outside the configured eligible scope"
+		}
 		return "approved", "remote work is stated and no incompatible geographic restriction was found"
 	}
 
