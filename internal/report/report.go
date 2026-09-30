@@ -23,6 +23,10 @@ func Markdown(jobs []domain.Job, uncertain []domain.Job, rejected, found int, ge
   if count==0{b.WriteString("Nenhuma vaga nesta faixa.\n\n")}
  }
  fmt.Fprintf(&b,"## ⚪ Para analisar\n\n%d vagas com localização incerta.\n\n",len(uncertain))
+ for _,j:=range uncertain {
+  fmt.Fprintf(&b,"- **%s — %s** — %s. Local: %s. Link: %s\n",j.Title,j.Company,j.LocationReason,j.Location,j.URL)
+ }
+ b.WriteString("\n")
  fmt.Fprintf(&b,"## Estatísticas\n\n- Vagas encontradas: %d\n- Vagas elegíveis: %d\n- Vagas incertas: %d\n- Rejeitadas por localização: %d\n",found,len(jobs),len(uncertain),rejected)
  return b.String()
 }
