@@ -47,8 +47,7 @@ var tagRE = regexp.MustCompile("(?s)<[^>]+>")
 var spaceRE = regexp.MustCompile("\\s+")
 
 func (c *Client) FetchJobs(ctx context.Context, q sources.Query) ([]domain.Job, error) {
-	terms := q.Terms
-	if len(terms) == 0 { terms = []string{"software engineer", "backend engineer", "golang"} }
+	terms := []string{"software engineer", "backend engineer", "golang", "platform engineer"}
 	seen := map[string]bool{}
 	out := make([]domain.Job, 0)
 	for _, term := range terms {
