@@ -39,7 +39,24 @@ func (c *Client) FetchJobs(ctx context.Context,q sources.Query)([]domain.Job,err
   req.Header.Set("Accept","application/json");resp,err:=c.HTTPClient.Do(req);if err!=nil{errs=append(errs,site+": "+err.Error());continue}
   body,readErr:=io.ReadAll(io.LimitReader(resp.Body,16<<20));resp.Body.Close();if readErr!=nil{errs=append(errs,site+": "+readErr.Error());continue}
   if resp.StatusCode<200||resp.StatusCode>=300{errs=append(errs,fmt.Sprintf("%s: HTTP %d",site,resp.StatusCode));continue}
-  var payload []posting;if err:=json.Unmarshal(body,&payload);err!=nil{errs=append(errs,site+": "+err.Error());continue}
+  var payload []posting
+  if err:=json.Unmarshal(body,&payload);err!=nil {
+   if strings.Contains(strings.ToLower(err.Error()), "unexpected end of json input") {
+    retryReq, retryErr := http.NewRequestWithContext(ctx,http.MethodGet,c.BaseURL+"/"+site+"?mode=json",nil)
+    if retryErr == nil {
+     retryReq.Header.Set("Accept","application/json")
+     retryResp, doErr := c.HTTPClient.Do(retryReq)
+     if doErr == nil {
+      retryBody, retryReadErr := io.ReadAll(io.LimitReader(retryResp.Body,16<<20))
+      retryResp.Body.Close()
+      if retryReadErr == nil && retryResp.StatusCode >= 200 && retryResp.StatusCode < 300 {
+       err = json.Unmarshal(retryBody,&payload)
+      }
+     }
+    }
+   }
+   if err != nil { errs=append(errs,site+": "+err.Error());continue }
+  }
   for _,p:=range payload{jobs=append(jobs,normalize(site,p))}
  }
  if len(errs)>0{return jobs,fmt.Errorf("%s",strings.Join(errs,"; "))};return jobs,nil
