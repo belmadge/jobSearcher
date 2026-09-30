@@ -25,43 +25,21 @@ The automation must:
 6. Never apply automatically. The system only discovers, filters, analyzes, and reports jobs.
 7. Avoid scraping sources that explicitly prohibit automated access. Prefer public APIs, feeds, structured job-board endpoints, and search providers where permitted.
 
-## Candidate profile
+## User profile
 
-Use \`config/profile.json\` as the source of truth. Do not hard-code candidate details across the codebase.
+The default CLI profile in `config/profile.json` is a generic example only. Do not hard-code personal candidate details across the codebase.
 
-Core profile signals from the current resume:
-- Backend Developer / Backend Software Engineer
-- Go
-- PostgreSQL / SQL
-- AWS
-- RabbitMQ
-- GraphQL
-- Docker
-- Kubernetes
-- Terraform
-- CI/CD
-- Datadog / observability / tracing
-- Automated testing
-- API/backend service development
-- Data migrations
-- Production troubleshooting
-- Fintech / production systems experience
-- AI Agents and AI Skills as emerging skills
+The web interface is the primary user-facing onboarding path for the generic product. It accepts only job-search preferences:
+- target role/area
+- skills
+- seniority
+- years of experience
+- location
+- preferred work model
 
-Experience level:
-- Junior Backend Developer at Dock since 2024
-- Junior Software Engineer at Levee from Oct 2021 to Apr 2024
-- Fullstack Intern at Simge from Dec 2020 to Oct 2021
-- Backend Developer experience at Facedoor
+Do not add resume/CV upload or parsing to this product unless the product requirements explicitly change. The first version must not require names, contact details, education, employer history, or other personal data.
 
-Education:
-- Systems Analysis, Centro Universitário Cesmac
-
-English:
-- Advanced / IELTS
-
-Certification:
-- Go Expert, Full Cycle, May 2024
+Web profile data is session-only by default and must not be persisted automatically.
 
 ## Matching policy
 
