@@ -36,3 +36,21 @@ func TestFetchJobsKeepsSuccessfulSitesOnPartialFailure(t *testing.T) {
  if err==nil{t.Fatal("expected partial failure error")}
  if len(jobs)!=1||jobs[0].ID!="lever:good:p2"{t.Fatalf("unexpected jobs: %+v",jobs)}
 }
+
+
+func TestFetchJobsRetriesTruncatedJSON(t *testing.T) {
+ attempts := 0
+ srv:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
+  attempts++
+  w.Header().Set("Content-Type","application/json")
+  if attempts == 1 { _,_=w.Write([]byte(`[{"id":"p3","text":"Backend Engineer","categories":{"location":"Remote - Brazil"}`)); return }
+  }
+  _,_=w.Write([]byte(`[{"id":"p3","text":"Backend Engineer","categories":{"location":"Remote - Brazil"}}]`))
+ }))
+ defer srv.Close()
+ c:=NewClient();c.HTTPClient=srv.Client();c.BaseURL=srv.URL
+ jobs,err:=c.FetchJobs(context.Background(),sources.Query{LeverSites:[]string{"retry"}})
+ if err!=nil{t.Fatal(err)}
+ if attempts!=2{t.Fatalf("expected 2 attempts, got %d",attempts)}
+ if len(jobs)!=1||jobs[0].ID!="lever:retry:p3"{t.Fatalf("unexpected jobs: %+v",jobs)}
+}
