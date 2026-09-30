@@ -65,6 +65,21 @@ func appendUnique(items []string, item string) []string {
 
 func clamp(v, low, high int) int { if v < low { return low }; if v > high { return high }; return v }
 
+var relevantTitleTerms = []string{"backend", "software engineer", "software developer", "go developer", "golang", "api engineer", "platform engineer", "cloud engineer", "distributed systems", "integration engineer"}
+var irrelevantTitleTerms = []string{"product manager", "product lead", "product designer", "designer", "sales", "marketing", "recruiter", "human resources", "hr ", "payroll", "customer support", "support specialist", "business development", "account executive", "account manager", "finance manager", "legal", "copywriter", "writer", "technician", "surveyor", "data entry", "office assistant"}
+
+func IsRelevant(j domain.Job) bool {
+	title := strings.ToLower(strings.TrimSpace(j.Title))
+	for _, term := range irrelevantTitleTerms {
+		if strings.Contains(title, term) { return false }
+	}
+	for _, term := range relevantTitleTerms {
+		if strings.Contains(title, term) { return true }
+	}
+	all := strings.ToLower(strings.Join([]string{j.Title, j.Description, j.Requirements}, " "))
+	return mentions(all, "Go") || mentions(all, "Golang") || mentions(all, "Backend")
+}
+
 // Score uses explicit required language for penalties. Missing optional or unmentioned profile skills do not reduce the score.
 func Score(j *domain.Job, p config.Profile) {
 	all := strings.Join([]string{j.Title, j.Description, j.Requirements}, " ")
@@ -101,6 +116,8 @@ func Score(j *domain.Job, p config.Profile) {
 	}
 	w := p.Weights
 	j.FitScore = clamp((j.TechnicalMatch*w.Technical+j.ResponsibilityMatch*w.Responsibility+j.SeniorityMatch*w.Seniority+j.CloudMatch*w.Cloud+j.DomainMatch*w.Domain+j.LanguageMatch*w.Language+j.AIMatch*w.AI)/100, 0, 100)
+	if j.SeniorityMatch <= 10 && j.FitScore > 59 { j.FitScore = 59 }
+	if j.SeniorityMatch == 55 && j.FitScore > 74 { j.FitScore = 74 }
 	j.Gaps = append([]string(nil), j.MustHaveMissing...)
 	if len(matched) > 0 { j.Reasons = append(j.Reasons, "Profile technology overlap: "+strings.Join(matched, ", ")) }
 	if len(j.MustHaveMatch) > 0 { j.Reasons = append(j.Reasons, "Required skills found: "+strings.Join(j.MustHaveMatch, ", ")) }
