@@ -1,20 +1,7 @@
 {
-  "location": "Maceió, Alagoas, Brazil",
+  "location": "Brazil",
   "remote_allowed": ["Brazil", "LATAM", "South America", "Worldwide", "Americas"],
-  "preferred_titles": [
-    "Software Engineer I",
-    "Software Engineer",
-    "Software Engineer II",
-    "Backend Developer",
-    "Backend Engineer",
-    "Go Developer",
-    "Golang Developer",
-    "API Engineer",
-    "Platform Engineer",
-    "Cloud Backend Engineer",
-    "Distributed Systems Engineer",
-    "Integration Engineer"
-  ],
+  "preferred_titles": ["Backend Developer", "Backend Engineer", "Software Engineer"],
   "minimum_fit_score": 60,
   "freshness_days": 7,
   "archive_days": 30,
