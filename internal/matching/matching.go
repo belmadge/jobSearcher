@@ -170,9 +170,9 @@ func Score(j *domain.Job, p config.Profile) {
 	j.TechnicalMatch = clamp(40+len(matched)*10-len(j.MustHaveMissing)*20, 0, 100)
 
 	respTerms := []string{"backend", "api", "service", "distributed systems", "integration"}
-	j.ResponsibilityMatch = termCoverage(all, respTerms)
+	j.ResponsibilityMatch = categoryCoverage(all, respTerms)
 	cloudTerms := []string{"aws", "cloud", "kubernetes", "docker", "terraform", "infrastructure"}
-	j.CloudMatch = termCoverage(all, cloudTerms)
+	j.CloudMatch = categoryCoverage(all, cloudTerms)
 	j.DomainMatch = neutralCoverage(all, p.Domains)
 	j.LanguageMatch = neutralCoverage(all, []string{"english"})
 	j.AIMatch = neutralCoverage(all, p.EmergingSkills)
@@ -284,6 +284,15 @@ func termCoverage(text string, terms []string) int {
 	hits := 0
 	for _, term := range terms { if mentions(text, term) { hits++ } }
 	return hits * 100 / len(terms)
+}
+
+// categoryCoverage gives partial credit when a category is represented but the posting does not enumerate every related term.
+// A single valid signal is not treated as a mismatch merely because the posting omits other terms.
+func categoryCoverage(text string, terms []string) int {
+	if len(terms) == 0 { return 50 }
+	coverage := termCoverage(text, terms)
+	if coverage == 0 { return 50 }
+	return 50 + coverage/2
 }
 
 // neutralCoverage treats an unmentioned category as "unknown" rather than as a
