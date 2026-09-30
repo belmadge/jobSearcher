@@ -207,7 +207,7 @@ func inferSeniority(j domain.Job) (int, string) {
 	case containsAny(level, "junior", "entry level", "entry-level", "associate", "new grad", "graduate"):
 		return 90, "Entry/junior/associate level; close to the primary target"
 	case containsAny(level, "mid-level", "mid level", "intermediate", "pleno"):
-		return 80, "Mid-level title; treated as closer to Engineer II"
+		return 85, "Mid-level title; compatible with the target range"
 	}
 
 	for _, years := range requiredYears(text) {
