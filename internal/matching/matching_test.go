@@ -60,8 +60,8 @@ func TestNiceToHaveMatchIsTracked(t *testing.T){
 func TestIsRelevantRole(t *testing.T) {
 	allowed := []domain.Job{
 		{Title: "Backend Go Engineer"},
-		{Title: "Software Engineer I"},
-		{Title: "Software Engineer II"},
+		{Title: "Software Engineer I", Description: "Backend engineering with APIs and Go"},
+		{Title: "Software Engineer II", Description: "Backend engineering with APIs and Go"},
 		{Title: "Platform Engineer"},
 		{Title: "Golang Developer"},
 	}
