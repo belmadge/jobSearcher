@@ -114,7 +114,13 @@ func normalize(p job) domain.Job {
 		salary = p.Currency + " " + strings.Join(parts, " - ") + " / " + p.SalaryPeriod
 	}
 	posted := ""
-	if p.PubDate > 0 { posted = time.UnixMilli(p.PubDate).UTC().Format(time.RFC3339) }
+	if p.PubDate > 0 {
+		// Himalayas has historically returned Unix seconds for some records and
+		// milliseconds for others. Detect the unit to avoid 1970-era dates.
+		var postedAt time.Time
+		if p.PubDate < 1_000_000_000_000 { postedAt = time.Unix(p.PubDate, 0).UTC() } else { postedAt = time.UnixMilli(p.PubDate).UTC() }
+		posted = postedAt.Format(time.RFC3339)
+	}
 	return domain.Job{ID:"himalayas:"+p.GUID,Source:"himalayas",Title:p.Title,Company:p.CompanyName,URL:p.ApplicationLink,ApplyURL:p.ApplicationLink,CanonicalURL:p.ApplicationLink,Location:location,WorkplaceType:"Remote",EmploymentType:p.EmploymentType,Seniority:strings.Join(p.Seniority,", "),Description:desc,Salary:salary,PostedAt:posted}
 }
 
