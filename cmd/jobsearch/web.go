@@ -61,7 +61,7 @@ func searchForWeb(ctx context.Context,profile config.Profile,search config.Searc
  for _,b:=range boards.Lever {if b.Enabled&&strings.TrimSpace(b.Site)!=""{sites=append(sites,b.Site)}}
  jobs,err:=fetchSources(ctx,"all",sources.Query{Terms:search.PreferredTitles,Location:search.Location,BoardTokens:tokens,LeverSites:sites});if err!=nil&&len(jobs)==0{return nil,err}
  out:=[]domain.Job{}
- for _,j:=range jobs {if !isWithinDays(j,search.ArchiveDays)||!matching.IsRelevant(j,requestedRoles)||!isFresh(j,search.FreshnessDays){continue}; x:=filter.Evaluate(j);matching.Score(&x,profile);if x.LocationEligible==domain.LocationEligible&&x.FitScore>=search.MinimumFitScore&&x.SeniorityMatch>55&&workModelAllowed(x,remote,hybrid,onsite){out=append(out,x)}}
+ for _,j:=range jobs {if !isWithinDays(j,search.ArchiveDays)||!matching.IsRelevant(j,requestedRoles...)||!isFresh(j,search.FreshnessDays){continue}; x:=filter.Evaluate(j);matching.Score(&x,profile);if x.LocationEligible==domain.LocationEligible&&x.FitScore>=search.MinimumFitScore&&x.SeniorityMatch>55&&workModelAllowed(x,remote,hybrid,onsite){out=append(out,x)}}
  sort.SliceStable(out,func(i,j int)bool{return out[i].FitScore>out[j].FitScore})
  return dedupe.Jobs(out),nil
 }
