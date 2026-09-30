@@ -2,14 +2,14 @@ package main
 
 import (
  "context";"encoding/json";"errors";"fmt";"os";"path/filepath";"sort";"strings";"time"
- "jobsearcher/internal/config";"jobsearcher/internal/dedupe";"jobsearcher/internal/domain";"jobsearcher/internal/filter";"jobsearcher/internal/matching";"jobsearcher/internal/report";"jobsearcher/internal/sources";"jobsearcher/internal/sources/greenhouse";"jobsearcher/internal/sources/lever";"jobsearcher/internal/sources/remoteok";"jobsearcher/internal/sources/remotive";"jobsearcher/internal/storage/sqlite"
+ "jobsearcher/internal/config";"jobsearcher/internal/dedupe";"jobsearcher/internal/domain";"jobsearcher/internal/filter";"jobsearcher/internal/matching";"jobsearcher/internal/report";"jobsearcher/internal/sources";"jobsearcher/internal/sources/greenhouse";"jobsearcher/internal/sources/lever";"jobsearcher/internal/sources/remoteok";"jobsearcher/internal/sources/remotive";"jobsearcher/internal/sources/programathor";"jobsearcher/internal/storage/sqlite"
 )
 func main(){if err:=run(context.Background(),os.Args[1:]);err!=nil{fmt.Fprintln(os.Stderr,"error:",err);os.Exit(1)}}
 func run(ctx context.Context,args []string)error{
  command,sourceName,dryRun:="run","all",false
  if len(args)>0{command=args[0];for _,arg:=range args[1:]{if arg=="--dry-run"{dryRun=true};if strings.HasPrefix(arg,"--source="){sourceName=strings.TrimPrefix(arg,"--source=")}}}
  if err:=config.LoadDotEnv(".env");err!=nil{return err};profile,err:=config.Load[config.Profile]("config/profile.json");if err!=nil{return err};search,err:=config.Load[config.Search]("config/search.json");if err!=nil{return err};boards,err:=config.Load[config.Boards]("config/boards.json");if err!=nil{return err}
- switch command{case "run":return runSearch(ctx,profile,search,boards,sourceName,dryRun);case "report":return latestReport();case "stats":return stats(ctx);case "--help","help":fmt.Println("jobsearch run [--dry-run] [--source=all|greenhouse|lever|remoteok|remotive|mock]");fmt.Println("jobsearch report");fmt.Println("jobsearch stats");return nil;default:return fmt.Errorf("unknown command %q; use --help",command)}
+ switch command{case "run":return runSearch(ctx,profile,search,boards,sourceName,dryRun);case "report":return latestReport();case "stats":return stats(ctx);case "--help","help":fmt.Println("jobsearch run [--dry-run] [--source=all|greenhouse|lever|remoteok|remotive|programathor|mock]");fmt.Println("jobsearch report");fmt.Println("jobsearch stats");return nil;default:return fmt.Errorf("unknown command %q; use --help",command)}
 }
 func runSearch(ctx context.Context,profile config.Profile,search config.Search,boards config.Boards,sourceName string,dryRun bool)error{
  tokens:=[]string{};sites:=[]string{}
@@ -66,13 +66,15 @@ func fetchSources(ctx context.Context,name string,q sources.Query)([]domain.Job,
  if name=="lever"{if len(q.LeverSites)==0{return nil,errors.New("no Lever sites configured; add enabled sites to config/boards.json or set LEVER_SITES")};return lever.NewClient().FetchJobs(ctx,q)}
  if name=="remoteok"{return remoteok.NewClient().FetchJobs(ctx,q)}
  if name=="remotive"{return remotive.NewClient().FetchJobs(ctx,q)}
+ if name=="programathor"{return programathor.NewClient().FetchJobs(ctx,q)}
  if name!="all"{return nil,fmt.Errorf("unknown source %q",name)}
- if len(q.BoardTokens)==0&&len(q.LeverSites)==0{j1,e1:=remoteok.NewClient().FetchJobs(ctx,q);j2,e2:=remotive.NewClient().FetchJobs(ctx,q);if e1!=nil&&e2!=nil{return nil,fmt.Errorf("remote sources failed: %v; %v",e1,e2)};return append(j1,j2...),nil}
+ if len(q.BoardTokens)==0&&len(q.LeverSites)==0{j1,e1:=remoteok.NewClient().FetchJobs(ctx,q);j2,e2:=remotive.NewClient().FetchJobs(ctx,q);j3,e3:=programathor.NewClient().FetchJobs(ctx,q);errs:=[]error{e1,e2,e3};failed:=0;for _,e:=range errs{if e!=nil{failed++}};if failed==3{return nil,fmt.Errorf("remote/brazil sources failed: %v; %v; %v",e1,e2,e3)};return append(append(j1,j2...),j3...),nil}
  all:=[]domain.Job{};errs:=[]string{}
  if len(q.BoardTokens)>0{j,e:=greenhouse.NewClient().FetchJobs(ctx,q);all=append(all,j...);if e!=nil{errs=append(errs,"greenhouse: "+e.Error())}}
  if len(q.LeverSites)>0{j,e:=lever.NewClient().FetchJobs(ctx,q);all=append(all,j...);if e!=nil{errs=append(errs,"lever: "+e.Error())}}
  j,e:=remoteok.NewClient().FetchJobs(ctx,q);all=append(all,j...);if e!=nil{errs=append(errs,"remoteok: "+e.Error())}
  j,e=remotive.NewClient().FetchJobs(ctx,q);all=append(all,j...);if e!=nil{errs=append(errs,"remotive: "+e.Error())}
+ j,e=programathor.NewClient().FetchJobs(ctx,q);all=append(all,j...);if e!=nil{errs=append(errs,"programathor: "+e.Error())}
  if len(errs)>0{return all,errors.New(strings.Join(errs,"; "))}
  return all,nil
 }
