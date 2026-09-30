@@ -198,7 +198,7 @@ func TestAdditionalFalsePositiveRolesAreRejected(t *testing.T) {
 func TestRequestedRoleChangesResultSet(t *testing.T) {
 	qa := domain.Job{Title: "QA Engineer", Description: "Quality assurance and automated testing"}
 	backend := domain.Job{Title: "Backend Developer", Description: "Backend APIs with Go"}
-	if !IsRelevant(qa, "Backend Developer") { t.Fatal("QA must not match a Backend Developer search") }
+	if IsRelevant(qa, "Backend Developer") { t.Fatal("QA must not match a Backend Developer search") }
 	if IsRelevant(backend, "QA") { t.Fatal("Backend Developer must not match a QA search") }
 	if !IsRelevant(qa, "QA") { t.Fatal("QA must match a QA search") }
 	if !IsRelevant(backend, "Backend Developer") { t.Fatal("Backend Developer must match a Backend Developer search") }
