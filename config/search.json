@@ -17,5 +17,6 @@
   ],
   "minimum_fit_score": 60,
   "freshness_days": 7,
+  "archive_days": 30,
   "max_jobs_per_source": 100
 }
