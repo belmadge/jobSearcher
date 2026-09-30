@@ -21,15 +21,16 @@ func runSearch(ctx context.Context,profile config.Profile,search config.Search,b
  jobs,err:=fetchSources(ctx,sourceName,query)
  if err!=nil{fmt.Fprintln(os.Stderr,"source warning:",err)}
  if len(jobs)==0&&err!=nil{return err}
- accepted:=[]domain.Job{};uncertain:=[]domain.Job{};rejected:=0;irrelevant:=0
+ accepted:=[]domain.Job{};uncertain:=[]domain.Job{};rejected:=0;irrelevant:=0;stale:=0
  for i:=range jobs{
+  if !isFresh(jobs[i],search.FreshnessDays){stale++;continue}
   if !matching.IsRelevant(jobs[i]) { irrelevant++; continue }
   job:=filter.Evaluate(jobs[i]);switch job.LocationEligible{case domain.LocationEligible:matching.Score(&job,profile);job.RecommendationStatus=recommendation(job.FitScore,search.MinimumFitScore);accepted=append(accepted,job);case domain.LocationUnknown:job.RecommendationStatus=domain.UncertainLocation;uncertain=append(uncertain,job);default:job.RecommendationStatus=domain.RejectedLocation;rejected++}}
  accepted=dedupe.Jobs(accepted);sort.SliceStable(accepted,func(i,j int)bool{return accepted[i].FitScore>accepted[j].FitScore})
  if !dryRun{if err:=os.MkdirAll("data",0755);err!=nil{return err};repo,err:=sqlite.Open(filepath.Join("data","jobsearch.db"));if err!=nil{return err};defer repo.Close();for i:=range accepted{if _,err:=repo.SaveJob(ctx,&accepted[i]);err!=nil{return err}};for i:=range uncertain{if _,err:=repo.SaveJob(ctx,&uncertain[i]);err!=nil{return err}}}
  now:=time.Now().Format("2006-01-02");if err:=os.MkdirAll("reports",0755);err!=nil{return err};if err:=os.WriteFile(filepath.Join("reports",now+".md"),[]byte(report.Markdown(accepted,uncertain,rejected,len(jobs),now)),0644);err!=nil{return err}
  data,err:=json.MarshalIndent(map[string]any{"generated_at":time.Now().UTC().Format(time.RFC3339),"jobs":accepted,"uncertain":uncertain},"","  ");if err!=nil{return err};if err:=os.WriteFile(filepath.Join("reports",now+".json"),data,0644);err!=nil{return err}
- fmt.Printf("Vagas encontradas: %d\nElegíveis: %d\nIncertas: %d\nRejeitadas por localização: %d\nFora do perfil: %d\n",len(jobs),len(accepted),len(uncertain),rejected,irrelevant);for _,j:=range accepted{fmt.Printf("%3d  %-45s  %s  %s\n",j.FitScore,j.Title,j.Company,j.URL)};return nil
+ fmt.Printf("Vagas encontradas: %d\nElegíveis: %d\nIncertas: %d\nRejeitadas por localização: %d\nFora do perfil: %d\nAntigas: %d\n",len(jobs),len(accepted),len(uncertain),rejected,irrelevant,stale);for _,j:=range accepted{fmt.Printf("%3d  %-45s  %s  %s\n",j.FitScore,j.Title,j.Company,j.URL)};return nil
 }
 func fetchSources(ctx context.Context,name string,q sources.Query)([]domain.Job,error){
  if name=="mock"{return (sources.Mock{}).FetchJobs(ctx,q)}
@@ -48,6 +49,30 @@ func fetchSources(ctx context.Context,name string,q sources.Query)([]domain.Job,
  return all,nil
 }
 func splitEnv(key string)[]string{v:=strings.TrimSpace(os.Getenv(key));if v==""{return nil};return strings.Split(v,",")}
+func isFresh(j domain.Job, days int) bool {
+	if days <= 0 { return true }
+	stamp := j.UpdatedAt
+	if stamp == "" { stamp = j.PostedAt }
+	if stamp == "" { return true }
+	parsed := parseJobTime(stamp)
+	if parsed.IsZero() { return true }
+	cutoff := time.Now().Add(-time.Duration(days)*24*time.Hour)
+	return !parsed.Before(cutoff)
+}
+
+func parseJobTime(value string) time.Time {
+	value = strings.TrimSpace(value)
+	layouts := []string{
+		time.RFC3339, time.RFC3339Nano,
+		"2006-01-02", "2006-01-02 15:04:05", "2006-01-02 15:04:05 -0700 MST",
+		"Mon, 02 Jan 2006 15:04:05 MST", "Mon, 02 Jan 2006 15:04:05 -0700",
+	}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, value); err == nil { return t }
+	}
+	return time.Time{}
+}
+
 func recommendation(score,minimum int)domain.RecommendationStatus{if score>=80{return domain.Recommended};if score>=minimum{return domain.PossibleMatch};return domain.LowMatch}
 func latestReport()error{entries,err:=os.ReadDir("reports");if err!=nil{return err};names:=[]string{};for _,e:=range entries{if !e.IsDir()&&strings.HasSuffix(e.Name(),".md"){names=append(names,e.Name())}};if len(names)==0{return errors.New("no reports found")};sort.Strings(names);b,err:=os.ReadFile(filepath.Join("reports",names[len(names)-1]));if err!=nil{return err};fmt.Print(string(b));return nil}
 func stats(ctx context.Context)error{repo,err:=sqlite.Open(filepath.Join("data","jobsearch.db"));if err!=nil{return err};defer repo.Close();s,err:=repo.GetStats(ctx);if err!=nil{return err};fmt.Printf("Total: %d\nNovas: %d\nVistas: %d\nAtualizadas: %d\nExpiradas: %d\nRecomendadas: %d\nPossíveis: %d\n",s.Total,s.New,s.Seen,s.Updated,s.Expired,s.Recommended,s.Possible);return nil}
