@@ -1,6 +1,6 @@
 # JobSearcher
 
-Automação para buscar vagas de tecnologia compatíveis com o perfil configurado, priorizando vagas remotas elegíveis para o Brasil e vagas presenciais/híbridas em Maceió/Alagoas.
+Automação para buscar vagas de tecnologia compatíveis com o perfil configurado, buscando exclusivamente vagas de tecnologia com trabalho 100% remoto, em qualquer país ou região.
 
 ## Como usar
 
@@ -34,7 +34,7 @@ Para executar a busca completa:
 go run ./cmd/jobsearch run
 ```
 
-A busca consulta as fontes configuradas, aplica os filtros de perfil, senioridade, localização e atualização das vagas e gera os resultados.
+A busca consulta as fontes configuradas, aplica os filtros de perfil, cargo, senioridade e atualização das vagas e gera os resultados.
 
 ### 4. Visualizar o último relatório
 
@@ -101,7 +101,7 @@ Se os testes falharem, corrija os erros antes de executar a busca.
 Os principais arquivos de configuração são:
 
 - `config/profile.json` — perfil profissional, tecnologias, experiência e pesos de compatibilidade.
-- `config/search.json` — localização, títulos procurados, score mínimo e período de atualização.
+- `config/search.json` — títulos procurados, score mínimo e período de atualização.
 - `config/boards.json` — empresas/fontes Greenhouse e Lever habilitadas.
 - `.env.example` — variáveis de ambiente opcionais.
 
@@ -125,7 +125,7 @@ Os resultados são separados em:
 
 - **Alta compatibilidade** — score alto.
 - **Compatibilidade possível** — atende ao score mínimo, mas possui mais lacunas.
-- **Para analisar** — localização ainda não pôde ser determinada com segurança.
+- **Para analisar** — vagas que atendem aos critérios básicos, mas precisam de avaliação adicional.
 
 Cada vaga pode apresentar título, empresa, localização, modelo de trabalho, score, senioridade, motivos de compatibilidade, gaps e link direto.
 
@@ -177,8 +177,8 @@ A primeira versão do JobSearcher também pode ser usada por uma interface local
 
 Depois abra `http://localhost:8080`.
 
-A configuração é feita durante a sessão: cargo/área desejada; skills; senioridade; anos de experiência; localização; e modelo de trabalho (remoto, híbrido ou presencial).
+A configuração é feita durante a sessão: cargo/área desejada; skills; senioridade e anos de experiência. A busca é sempre global e exclusivamente remota.
 
 O perfil informado no formulário é mantido apenas em memória durante a busca. O JobSearcher não precisa armazenar currículo, nome, telefone, e-mail ou outros dados pessoais para realizar o matching.
 
-O formulário usa o mesmo pipeline existente de fontes, filtros, localização, senioridade, matching, score e deduplicação do CLI. A aplicação continua apenas encontrando e apresentando vagas; não envia candidaturas nem mensagens para recrutadores.
+O formulário usa o mesmo pipeline existente de fontes, filtros de trabalho remoto, senioridade, matching, score e deduplicação do CLI. A aplicação continua apenas encontrando e apresentando vagas; não envia candidaturas nem mensagens para recrutadores.
