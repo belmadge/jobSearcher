@@ -64,6 +64,7 @@ func ClassifyLocation(j domain.Job) (string, string) {
 	}
 	if outsideAlagoasState {
 		return "rejected_location", "physical location is outside Maceio/Alagoas"
+	}
 	if hybrid || onsite || physicalMaceio {
 		return "rejected_location", "onsite or hybrid physical location is not Maceio/Alagoas"
 	}
