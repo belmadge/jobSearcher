@@ -27,12 +27,12 @@ body{font-family:system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0
 <form method="post">
 <label>Cargo / área</label><input name="roles" placeholder="Backend Developer, Software Engineer" value="{{.Roles}}">
 <label>Skills</label><input name="skills" placeholder="Go, AWS, PostgreSQL, Docker" value="{{.Skills}}">
-<label>Senioridade</label><select name="seniority"><option value="junior">Júnior</option><option value="mid">Pleno</option><option value="senior">Sênior</option><option value="staff">Staff / Lead</option></select>
+<label>Senioridade</label><select name="seniority"><option value="junior" {{if eq .Seniority "junior"}}selected{{end}}>Júnior</option><option value="mid" {{if eq .Seniority "mid"}}selected{{end}}>Pleno</option><option value="senior" {{if eq .Seniority "senior"}}selected{{end}}>Sênior</option><option value="staff" {{if eq .Seniority "staff"}}selected{{end}}>Staff / Lead</option></select>
 <label>Anos de experiência</label><input type="number" min="0" name="experience" value="{{.Experience}}">
 <label>Localização</label><input name="location" placeholder="Brasil, São Paulo, Maceió..." value="{{.Location}}">
 <label>Modelo de trabalho</label><div class="checks"><label><input type="checkbox" name="remote" checked> Remoto</label><label><input type="checkbox" name="hybrid" checked> Híbrido</label><label><input type="checkbox" name="onsite"> Presencial</label></div>
 <button type="submit">🔎 Buscar vagas</button></form></div>
-{{if .Searched}}<div class="card"><h2>Resultados</h2><p class="muted">{{.Count}} vagas elegíveis encontradas.</p>{{range .Jobs}}<div class="job"><div class="score">{{.FitScore}}% — {{.Title}}</div><strong>{{.Company}}</strong><div class="muted">{{.Location}}</div><div class="skills">Fonte: {{.Source}}</div><p><a href="{{.URL}}" target="_blank" rel="noopener">Ver vaga →</a></p></div>{{else}}<p>Nenhuma vaga encontrada com esses critérios.</p>{{end}}</div>{{end}}
+{{if .Searched}}<div class="card"><h2>Resultados</h2><p class="muted">{{.Count}} vagas elegíveis encontradas.</p>{{range .Jobs}}<div class="job"><div class="score">{{.FitScore}}% — {{.Title}}</div><strong>{{.Company}}</strong><div class="muted">{{.Location}} · {{.WorkplaceType}} · {{.Seniority}}</div><div class="skills">✓ {{join .MustHaveMatch}} {{if .MustHaveMissing}} · △ {{join .MustHaveMissing}}{{end}}</div><div class="skills">Fonte: {{.Source}}</div><p><a href="{{.URL}}" target="_blank" rel="noopener">Ver vaga →</a></p></div>{{else}}<p>Nenhuma vaga encontrada com esses critérios.</p>{{end}}</div>{{end}}
 </body></html>`
 
 type webView struct { Roles, Skills, Experience, Location, Seniority string; Searched bool; Count int; Jobs []domain.Job }
@@ -40,16 +40,16 @@ type webView struct { Roles, Skills, Experience, Location, Seniority string; Sea
 func startWebServer(ctx context.Context, boards config.Boards) error {
  mux:=http.NewServeMux()
  mux.HandleFunc("/",func(w http.ResponseWriter,r *http.Request){
-  v:=webView{Experience:"3",Location:"Brazil"}
+  v:=webView{Experience:"3",Location:"Brazil",Seniority:"junior"}
   if r.Method==http.MethodPost {
    _=r.ParseForm(); v.Roles=strings.TrimSpace(r.FormValue("roles")); v.Skills=strings.TrimSpace(r.FormValue("skills")); v.Experience=r.FormValue("experience"); v.Location=strings.TrimSpace(r.FormValue("location")); v.Seniority=r.FormValue("seniority")
    years,_:=strconv.Atoi(v.Experience); if years<0 {years=0}
-   roles:=rolesForSeniority(csvValues(v.Roles),v.Seniority); skills:=csvValues(v.Skills)
+   roles:=rolesForSeniority(csvValues(v.Roles),v.Seniority); skills:=csvValues(v.Skills); if len(roles)==0 {http.Error(w,"informe pelo menos um cargo ou área",400);return}; if len(skills)==0 {http.Error(w,"informe pelo menos uma skill",400);return}
    profile:=config.Profile{Titles:roles,Technologies:skills,YearsExperience:years,Weights:config.Weights{Technical:35,Responsibility:15,Seniority:25,Cloud:10,Domain:7,Language:4,AI:4}}
    search:=config.Search{Location:v.Location,RemoteAllowed:[]string{"Brazil","LATAM","South America","Worldwide","Americas"},PreferredTitles:roles,MinimumFitScore:60,FreshnessDays:7,ArchiveDays:30,MaxJobsPerSource:100}
    jobs,err:=searchForWeb(ctx,profile,search,boards,r.FormValue("remote")!="" ,r.FormValue("hybrid")!="" ,r.FormValue("onsite")!=""); if err!=nil {http.Error(w,"erro ao buscar vagas: "+err.Error(),http.StatusBadGateway);return}; v.Searched=true;v.Jobs=jobs;v.Count=len(jobs)
   }
-  _=template.Must(template.New("page").Parse(webPage)).Execute(w,v)
+  t,err:=template.New("page").Funcs(template.FuncMap{"join":func(v []string)string{return strings.Join(v,", ")}}).Parse(webPage);if err!=nil{http.Error(w,err.Error(),500);return};_=t.Execute(w,v)
  })
  fmt.Println("JobSearcher web: http://localhost:8080")
  return http.ListenAndServe(":8080",mux)
