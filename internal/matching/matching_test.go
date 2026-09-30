@@ -147,3 +147,17 @@ func TestSpecializedPlatformRolesAreRejected(t *testing.T) {
 		}
 	}
 }
+
+func TestSpecializedSecurityRolesAreRejected(t *testing.T) {
+	roles := []string{
+		"Red Team Specialist",
+		"Cybersecurity Engineer",
+		"Penetration Tester",
+		"Security Engineer",
+	}
+	for _, title := range roles {
+		if IsRelevant(domain.Job{Title: title, Description: "Go, AWS, Kubernetes and APIs"}) {
+			t.Fatalf("expected specialized security role to be rejected: %s", title)
+		}
+	}
+}
