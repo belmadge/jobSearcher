@@ -48,3 +48,13 @@ func TestRemoteCloudDoesNotBecomeHybrid(t *testing.T) {
 		t.Fatalf("expected remote cloud role to remain eligible, got %q", got)
 	}
 }
+
+func TestEvaluateKeepsExplicitRemote(t *testing.T) {
+	j := Evaluate(domain.Job{WorkplaceType: "Remote", Location: "Remote", Description: "Hybrid cloud infrastructure and remote collaboration."})
+	if j.LocationEligible != domain.LocationEligible {
+		t.Fatalf("expected eligible location, got %q (%s)", j.LocationEligible, j.LocationReason)
+	}
+	if j.WorkplaceType != "remote" {
+		t.Fatalf("expected workplace type remote, got %q", j.WorkplaceType)
+	}
+}
