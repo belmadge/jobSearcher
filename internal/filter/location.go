@@ -30,9 +30,9 @@ func ClassifyLocation(j domain.Job) (string, string) {
 	w, l := norm(j.WorkplaceType), norm(j.Location)
 	d := norm(j.Description)
 	combined := l + " " + d
-	remote := containsAny(w, "remote") || containsAny(l, "remote") || containsAny(d, "remote")
-	hybrid := containsAny(w, "hybrid") || containsAny(l, "hybrid") || containsAny(d, "hybrid")
-	onsite := containsAny(w, "onsite", "on site", "in person", "office") || containsAny(d, "onsite", "on site", "in person")
+	remote := containsAny(w, "remote") || containsAny(l, "remote") || containsAny(d, "remote work", "remote role", "remote position", "fully remote", "work remotely")
+	hybrid := containsAny(w, "hybrid") || containsAny(l, "hybrid") || containsAny(d, "hybrid work", "hybrid role", "hybrid position", "work hybrid")
+	onsite := containsAny(w, "onsite", "on site", "in person") || containsAny(d, "onsite", "on site", "in person", "office-based", "office based", "must work from the office")
 	physicalMaceio := containsAny(combined, "maceio", "alagoas")
 
 	if remote && (hybrid || onsite) {
@@ -79,9 +79,9 @@ func Evaluate(j domain.Job) domain.Job {
 	}
 
 	w, l, d := norm(j.WorkplaceType), norm(j.Location), norm(j.Description)
-	remote := containsAny(w, "remote") || containsAny(l, "remote") || containsAny(d, "remote")
-	hybrid := containsAny(w, "hybrid") || containsAny(l, "hybrid") || containsAny(d, "hybrid")
-	onsite := containsAny(w, "onsite", "on site", "in person", "office") || containsAny(d, "onsite", "on site", "in person")
+	remote := containsAny(w, "remote") || containsAny(l, "remote") || containsAny(d, "remote work", "remote role", "remote position", "fully remote", "work remotely")
+	hybrid := containsAny(w, "hybrid") || containsAny(l, "hybrid") || containsAny(d, "hybrid work", "hybrid role", "hybrid position", "work hybrid")
+	onsite := containsAny(w, "onsite", "on site", "in person") || containsAny(d, "onsite", "on site", "in person", "office-based", "office based", "must work from the office")
 	if remote == hybrid && !onsite {
 		j.WorkplaceType = "unknown"
 		return j
