@@ -1,6 +1,7 @@
 package matching
 
 import (
+ "strings"
  "testing"
  "jobsearcher/internal/config"
  "jobsearcher/internal/domain"
