@@ -46,3 +46,26 @@ func FallbackKey(j domain.Job) string {
 }
 
 func SourceKey(source, sourceID string) string { if source == "" || sourceID == "" { return "" }; return strings.ToLower(source) + "|" + sourceID }
+
+
+func Jobs(jobs []domain.Job) []domain.Job {
+	seen := map[string]struct{}{}
+	out := make([]domain.Job, 0, len(jobs))
+	for _, j := range jobs {
+		key := CanonicalURL(j.URL)
+		if key == "" {
+			key = FallbackKey(j)
+		}
+		if key == "" {
+			key = SourceKey(j.Source, j.ID)
+		}
+		if key != "" {
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+		}
+		out = append(out, j)
+	}
+	return out
+}
