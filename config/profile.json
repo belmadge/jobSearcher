@@ -1,5 +1,5 @@
 {
-  "titles": ["Backend Developer", "Backend Engineer", "Software Engineer", "Go Developer", "Golang Developer", "API Developer", "Platform Engineer"],
+  "titles": ["Software Engineer I", "Software Engineer", "Software Engineer II", "Backend Developer", "Backend Engineer", "Go Developer", "Golang Developer", "API Developer", "Platform Engineer"],
   "technologies": ["Go", "Golang", "PostgreSQL", "SQL", "AWS", "RabbitMQ", "GraphQL", "Docker", "Kubernetes", "Terraform", "CI/CD", "Datadog", "Observability", "Automated Testing", "APIs", "Backend Services", "Data Migrations"],
   "experience": [
     {"company":"Dock", "title":"Junior Backend Developer", "period":"2024-present"},
