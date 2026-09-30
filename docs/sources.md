@@ -43,3 +43,7 @@ The project also supports Remote OK's public JSON feed for broad remote-job disc
 - The feed's terms require attribution and a link back to Remote OK; JobSearcher does not republish job descriptions publicly beyond its local report.
 
 Public API: https://remoteok.com/api
+
+## Remotive
+
+Remotive provides a public API containing active remote job listings. The API supports a software-development category and returns candidate geographic restrictions, salary, publication date and the original Remotive job URL. The public API data may be delayed by 24 hours and has request-rate guidance, so JobSearcher uses it as a discovery source rather than a real-time feed. The local report identifies Remotive as the source and links to the original listing, as required by its public API terms. citeturn1view0turn2view0
