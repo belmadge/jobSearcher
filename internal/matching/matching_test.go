@@ -11,6 +11,8 @@ func profile() config.Profile {
   Technologies: []string{"Go","PostgreSQL","SQL","AWS","RabbitMQ","GraphQL","Docker","Kubernetes","Terraform","CI/CD","Datadog","Observability","APIs"},
   Domains: []string{"fintech","production systems","APIs","observability","troubleshooting","cloud infrastructure"},
   EmergingSkills: []string{"AI Agents","AI Skills"},
+  YearsExperience: 5,
+  TechnologyYears: map[string]int{"Go": 3},
   Weights: config.Weights{Technical:35,Responsibility:20,Seniority:15,Cloud:10,Domain:10,Language:5,AI:5},
  }
 }
@@ -83,4 +85,18 @@ func TestSeniorAndStaffGuardrails(t *testing.T) {
 	senior := domain.Job{Title: "Senior Backend Engineer", Description: "Go PostgreSQL AWS Kubernetes Docker Terraform APIs"}
 	Score(&senior, p)
 	if senior.FitScore >= 75 { t.Fatalf("senior role should remain below high-compatibility threshold: got %d", senior.FitScore) }
+}
+
+
+func TestExperienceRequirements(t *testing.T) {
+	p := profile()
+	ok := domain.Job{Title: "Software Engineer II", Description: "Go required. 3+ years of Go experience. 5+ years of software engineering experience."}
+	Score(&ok, p)
+	if ok.SeniorityMatch != 85 { t.Fatalf("Software Engineer II should be compatible: %d", ok.SeniorityMatch) }
+	if len(ok.MustHaveMissing) != 0 { t.Fatalf("expected no experience gaps: %v", ok.MustHaveMissing) }
+
+	gap := domain.Job{Title: "Senior Go Engineer", Description: "Go required. 5+ years of Go experience. 7+ years of software engineering experience."}
+	Score(&gap, p)
+	if len(gap.MustHaveMissing) == 0 { t.Fatal("expected experience gaps") }
+	if gap.FitScore >= ok.FitScore { t.Fatalf("experience gap should lower fit: gap=%d ok=%d", gap.FitScore, ok.FitScore) }
 }
