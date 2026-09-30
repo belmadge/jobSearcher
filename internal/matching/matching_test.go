@@ -59,6 +59,7 @@ func TestNiceToHaveMatchIsTracked(t *testing.T){
 func TestIsRelevantRole(t *testing.T) {
 	allowed := []domain.Job{
 		{Title: "Backend Go Engineer"},
+		{Title: "Software Engineer I"},
 		{Title: "Software Engineer II"},
 		{Title: "Platform Engineer"},
 		{Title: "Golang Developer"},
@@ -99,4 +100,35 @@ func TestExperienceRequirements(t *testing.T) {
 	Score(&gap, p)
 	if len(gap.MustHaveMissing) == 0 { t.Fatal("expected experience gaps") }
 	if gap.FitScore >= ok.FitScore { t.Fatalf("experience gap should lower fit: gap=%d ok=%d", gap.FitScore, ok.FitScore) }
+}
+
+
+func TestEngineerLevelPreference(t *testing.T) {
+	p := profile()
+	i := domain.Job{Title: "Software Engineer I", Description: "Backend APIs with Go"}
+	Score(&i, p)
+	if i.SeniorityMatch != 95 { t.Fatalf("Engineer I should be primary target: %d", i.SeniorityMatch) }
+
+	second := domain.Job{Title: "Software Engineer II", Description: "Backend APIs with Go"}
+	Score(&second, p)
+	if second.SeniorityMatch != 78 { t.Fatalf("Engineer II should be secondary target: %d", second.SeniorityMatch) }
+	if i.SeniorityMatch <= second.SeniorityMatch { t.Fatal("Engineer I should rank above Engineer II by seniority fit") }
+}
+
+func TestUnrelatedEngineeringRolesAreRejected(t *testing.T) {
+	roles := []string{"Frontend Engineer", "Mobile Engineer", "QA Engineer", "Data Scientist", "Machine Learning Engineer", "Data Analyst"}
+	for _, title := range roles {
+		if IsRelevant(domain.Job{Title: title, Description: "Software engineer role"}) {
+			t.Fatalf("expected unrelated role to be rejected: %s", title)
+		}
+	}
+}
+
+func TestGenericSoftwareEngineerNeedsBackendSignal(t *testing.T) {
+	if IsRelevant(domain.Job{Title: "Software Engineer", Description: "Build iOS applications with Swift"}) {
+		t.Fatal("generic software engineer without backend signal should be rejected")
+	}
+	if !IsRelevant(domain.Job{Title: "Software Engineer", Description: "Build backend services and APIs with Go"}) {
+		t.Fatal("backend software engineer should be relevant")
+	}
 }
