@@ -155,7 +155,7 @@ func Score(j *domain.Job, p config.Profile) {
 	j.DomainMatch = termCoverage(all, p.Domains)
 	j.LanguageMatch = termCoverage(all, []string{"english"})
 	j.AIMatch = termCoverage(all, p.EmergingSkills)
-	j.SeniorityMatch, j.SeniorityReason = inferSeniority(j)
+	j.SeniorityMatch, j.SeniorityReason = inferSeniority(*j)
 
 	w := p.Weights
 	j.FitScore = clamp((j.TechnicalMatch*w.Technical+j.ResponsibilityMatch*w.Responsibility+j.SeniorityMatch*w.Seniority+j.CloudMatch*w.Cloud+j.DomainMatch*w.Domain+j.LanguageMatch*w.Language+j.AIMatch*w.AI)/100, 0, 100)
