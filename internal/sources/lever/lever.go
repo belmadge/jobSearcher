@@ -37,7 +37,7 @@ func (c *Client) FetchJobs(ctx context.Context,q sources.Query)([]domain.Job,err
   site=strings.TrimSpace(site);if site==""{continue}
   req,err:=http.NewRequestWithContext(ctx,http.MethodGet,c.BaseURL+"/"+site+"?mode=json",nil);if err!=nil{errs=append(errs,site+": "+err.Error());continue}
   req.Header.Set("Accept","application/json");resp,err:=c.HTTPClient.Do(req);if err!=nil{errs=append(errs,site+": "+err.Error());continue}
-  body,readErr:=io.ReadAll(io.LimitReader(resp.Body,16<<20));resp.Body.Close();if readErr!=nil{errs=append(errs,site+": "+readErr.Error());continue}
+  body,readErr:=io.ReadAll(io.LimitReader(resp.Body,64<<20));resp.Body.Close();if readErr!=nil{errs=append(errs,site+": "+readErr.Error());continue}
   if resp.StatusCode<200||resp.StatusCode>=300{errs=append(errs,fmt.Sprintf("%s: HTTP %d",site,resp.StatusCode));continue}
   var payload []posting
   if err:=json.Unmarshal(body,&payload);err!=nil {
@@ -47,7 +47,7 @@ func (c *Client) FetchJobs(ctx context.Context,q sources.Query)([]domain.Job,err
      retryReq.Header.Set("Accept","application/json")
      retryResp, doErr := c.HTTPClient.Do(retryReq)
      if doErr == nil {
-      retryBody, retryReadErr := io.ReadAll(io.LimitReader(retryResp.Body,16<<20))
+      retryBody, retryReadErr := io.ReadAll(io.LimitReader(retryResp.Body,64<<20))
       retryResp.Body.Close()
       if retryReadErr == nil && retryResp.StatusCode >= 200 && retryResp.StatusCode < 300 {
        err = json.Unmarshal(retryBody,&payload)
