@@ -165,7 +165,7 @@ func TestSpecializedSecurityRolesAreRejected(t *testing.T) {
 
 func TestUnmentionedCategoriesAreNeutral(t *testing.T) {
 	p := profile()
-	j := domain.Job{Title: "Software Engineer I", Description: "Backend APIs with Go, PostgreSQL and AWS"}
+	j := domain.Job{Title: "Software Engineer I", Description: "Backend work with Go, PostgreSQL and AWS"}
 	Score(&j, p)
 	if j.DomainMatch != 50 { t.Fatalf("unmentioned domain should be neutral: %d", j.DomainMatch) }
 	if j.LanguageMatch != 50 { t.Fatalf("unmentioned language should be neutral: %d", j.LanguageMatch) }
