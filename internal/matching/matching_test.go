@@ -14,7 +14,7 @@ func profile() config.Profile {
   EmergingSkills: []string{"AI Agents","AI Skills"},
   YearsExperience: 5,
   TechnologyYears: map[string]int{"Go": 3},
-  Weights: config.Weights{Technical:35,Responsibility:20,Seniority:15,Cloud:10,Domain:10,Language:5,AI:5},
+  Weights: config.Weights{Technical:35,Responsibility:15,Seniority:25,Cloud:10,Domain:7,Language:4,AI:4},
  }
 }
 
@@ -114,6 +114,7 @@ func TestEngineerLevelPreference(t *testing.T) {
 	Score(&second, p)
 	if second.SeniorityMatch != 78 { t.Fatalf("Engineer II should be secondary target: %d", second.SeniorityMatch) }
 	if i.SeniorityMatch <= second.SeniorityMatch { t.Fatal("Engineer I should rank above Engineer II by seniority fit") }
+	if i.FitScore <= second.FitScore { t.Fatalf("Engineer I should rank above Engineer II by fit: I=%d II=%d", i.FitScore, second.FitScore) }
 }
 
 func TestUnrelatedEngineeringRolesAreRejected(t *testing.T) {
