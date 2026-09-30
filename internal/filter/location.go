@@ -65,10 +65,13 @@ func ClassifyLocation(j domain.Job) (string, string) {
 		}
 		// A specific remote location in an ineligible country is treated as a geographic restriction.
 		// Keep generic "Remote" postings eligible because they do not establish a country restriction.
-		if containsAny(l, "canada", "united states", "usa", "united kingdom", "uk", "europe", "australia", "new zealand", "singapore") {
+		if containsAny(l, "canada", "united states", "usa", "united kingdom", "uk", "europe", "australia", "new zealand", "singapore", "india", "indonesia", "philippines", "malaysia", "japan", "china", "hong kong", "taiwan", "south korea", "germany", "france", "spain", "italy", "netherlands", "belgium", "ireland", "portugal", "poland", "sweden", "norway", "denmark", "switzerland", "israel", "south africa", "nigeria") {
 			return "rejected_location", "remote posting is tied to a country or region outside the configured eligible scope"
 		}
-		return "approved", "remote work is stated and no incompatible geographic restriction was found"
+		if strings.Contains(l, "remote") {
+			return "approved", "remote work is stated without an incompatible country restriction"
+		}
+		return "uncertain_location", "remote work is stated but the geographic scope is not explicit enough"
 	}
 
 	if physicalMaceio && containsAny(combined, "brazil", "brasil", "alagoas", "maceio") {
