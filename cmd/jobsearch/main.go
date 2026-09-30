@@ -62,13 +62,17 @@ func fetchSources(ctx context.Context,name string,q sources.Query)([]domain.Job,
 func splitEnv(key string)[]string{v:=strings.TrimSpace(os.Getenv(key));if v==""{return nil};return strings.Split(v,",")}
 func isFresh(j domain.Job, days int) bool {
 	if days <= 0 { return true }
-	stamp := j.UpdatedAt
-	if stamp == "" { stamp = j.PostedAt }
-	if stamp == "" { return true }
-	parsed := parseJobTime(stamp)
-	if parsed.IsZero() { return true }
+	var newest time.Time
+	for _, stamp := range []string{j.UpdatedAt, j.PostedAt} {
+		if parsed := parseJobTime(stamp); !parsed.IsZero() && parsed.After(newest) {
+			newest = parsed
+		}
+	}
+	if newest.IsZero() {
+		return true
+	}
 	cutoff := time.Now().Add(-time.Duration(days)*24*time.Hour)
-	return !parsed.Before(cutoff)
+	return !newest.Before(cutoff)
 }
 
 func parseJobTime(value string) time.Time {
