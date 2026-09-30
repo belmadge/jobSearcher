@@ -21,6 +21,8 @@ func TestClassifyLocation(t *testing.T) {
 		{"hybrid Maceio", "Hybrid", "Maceio, Alagoas", "", "approved"},
 		{"hybrid Recife", "Hybrid", "Recife, Brazil", "", "rejected_location"},
 		{"remote without geographic scope", "Remote", "Remote", "", "approved"},
+		{"remote Canada restriction", "Remote", "Canada", "", "rejected_location"},
+		{"remote Europe restriction", "Remote", "Europe", "", "rejected_location"},
 		{"unknown", "", "Somewhere", "", "uncertain_location"},
 		{"Maceio physical location", "", "Maceio, Brazil", "", "approved"},
 		{"onsite Maceio stated in description", "", "Maceio, Brazil", "This is an on-site role", "approved"},
