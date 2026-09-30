@@ -1,0 +1,47 @@
+{
+  "name": "Roberta Madge",
+  "target_roles": [
+    "Backend Developer",
+    "Backend Engineer",
+    "Software Engineer",
+    "Go Developer",
+    "Golang Developer",
+    "API Developer",
+    "Platform Engineer"
+  ],
+  "experience_level": {
+    "preferred": ["Junior", "Mid-level", "Associate"],
+    "years_backend": 5
+  },
+  "location_policy": {
+    "remote_required": true,
+    "allowed_physical_locations": [
+      "Maceió, Alagoas, Brazil",
+      "Maceio, Alagoas, Brazil",
+      "Maceió, AL, Brazil",
+      "Maceio, AL, Brazil"
+    ],
+    "allow_remote_anywhere": true
+  },
+  "skills": {
+    "primary": ["Go", "Golang", "Backend Development", "REST APIs", "PostgreSQL", "SQL"],
+    "strong": ["AWS", "Docker", "RabbitMQ", "GraphQL", "Datadog", "CI/CD", "GitHub", "Kubernetes"],
+    "working": ["Terraform", "MySQL", "Automated Testing", "Data Migrations", "Observability", "Distributed Systems"],
+    "emerging": ["AI Agents", "AI Skills"]
+  },
+  "domain_experience": ["Fintech", "Production Systems"],
+  "responsibilities": [
+    "Backend services",
+    "API development",
+    "Production troubleshooting",
+    "Observability and tracing",
+    "Alerting",
+    "Data migrations",
+    "Performance initiatives",
+    "Kubernetes-based environments",
+    "CI/CD"
+  ],
+  "education": ["Systems Analysis — Centro Universitário Cesmac"],
+  "languages": [{"language": "English", "level": "Advanced", "credential": "IELTS"}],
+  "certifications": ["Go Expert — Full Cycle — May 2024"]
+}
