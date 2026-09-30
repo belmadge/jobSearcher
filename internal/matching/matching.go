@@ -177,6 +177,8 @@ func Score(j *domain.Job, p config.Profile) {
 		for _, skill := range p.Technologies { if canonical(skill) == canonical(term) && mentions(all, term) { j.NiceToHaveMatch = appendUnique(j.NiceToHaveMatch, term) } }
 	}
 	j.TechnicalMatch = clamp(40+len(matched)*10-len(j.MustHaveMissing)*20, 0, 100)
+	// Go is the candidate's strongest specialization, so a direct Go match gets a small bonus.
+	if mentions(all, "Go") { j.TechnicalMatch = clamp(j.TechnicalMatch+5, 0, 100) }
 
 	respTerms := []string{"backend", "api", "service", "distributed systems", "integration"}
 	j.ResponsibilityMatch = categoryCoverage(all, respTerms)
