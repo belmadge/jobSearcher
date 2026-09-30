@@ -20,8 +20,8 @@ var techAliases = map[string][]string{
 
 var requirementTechs = []string{"Go", "PostgreSQL", "SQL", "AWS", "GCP", "Azure", "RabbitMQ", "GraphQL", "Docker", "Kubernetes", "Terraform", "CI/CD", "Datadog", "Observability", "API", "Redis", "Python", "Java"}
 var cueSplit = regexp.MustCompile(`[\n.;]+`)
-var yearsExperience = regexp.MustCompile(`\b(\d+)(?:\+?\s+years?)\b`)
-var techYearsExperience = regexp.MustCompile(`(?i)\b(\d+)\+?\s+years?\s+(?:of\s+)?([a-zA-Z0-9+/.-]+)\b`)
+var yearsExperience = regexp.MustCompile(`\b(\d+)(?:\s*[-–]\s*(\d+))?\+?\s+years?\b`)
+var techYearsExperience = regexp.MustCompile(`(?i)\b(\d+)(?:\s*[-–]\s*(\d+))?\+?\s+years?\s+(?:of\s+)?([a-zA-Z0-9+/.-]+)\b`)
 
 func canonical(term string) string {
 	lower := strings.ToLower(strings.TrimSpace(term))
@@ -88,7 +88,8 @@ func requiredTechnologyYears(text string) map[string]int {
 		if len(match) < 3 { continue }
 		var years int
 		fmt.Sscanf(match[1], "%d", &years)
-		tech := canonical(match[2])
+		if len(match) > 3 && match[2] != "" { var maxYears int; fmt.Sscanf(match[2], "%d", &maxYears); if maxYears > years { years = maxYears } }
+		tech := canonical(match[3])
 		if years > out[tech] { out[tech] = years }
 	}
 	return out
@@ -114,7 +115,7 @@ var irrelevantTitleTerms = []string{
 	"red team", "red-team", "penetration tester", "penetration testing", "pentester", "cybersecurity", "cyber security", "security engineer", "security specialist", "security analyst", "head of security", "iam engineer",
 	"qa engineer", "quality assurance", "sdet", "test engineer", "data scientist",
 	"executivo de contas", "executiva de contas", "analista comercial", "analista de contas", "analista de operacoes", "analista de operações", "supervisor de operacoes", "supervisor de operações", "especialista de planejamento", "planejamento e performance", "marketplace", "farmer", "closing",
-	"machine learning engineer", "ml engineer", "data engineer", "data analyst", "java developer", "java engineer", "ux ", "ui ",
+	"machine learning engineer", "ml engineer", "data engineer", "data analyst", "java developer", "java engineer", "kotlin developer", "kotlin engineer", "ruby developer", "ruby on rails", "django engineer", "python developer", "python engineer", ".net developer", "dotnet developer", "c# developer", "devsecops", "security", "iam", "appsec", "application security", "qa", "quality assurance", "sdet", "test engineer", "ios", "android", "ux ", "ui ",
 }
 
 func IsRelevant(j domain.Job) bool {
