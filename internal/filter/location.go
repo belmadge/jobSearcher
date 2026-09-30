@@ -7,6 +7,7 @@ import (
 )
 
 var words = regexp.MustCompile(`[a-z0-9]+`)
+var brazilStateCode = regexp.MustCompile(`(^|[ ,;])-?(ac|al|ap|am|ba|ce|df|es|go|ma|mt|ms|mg|pa|pb|pr|pe|pi|rj|rn|rs|ro|rr|sc|sp|se|to)([ ,;]|$)`)
 
 func norm(s string) string {
 	s = strings.ToLower(s)
@@ -34,6 +35,7 @@ func ClassifyLocation(j domain.Job) (string, string) {
 	hybrid := containsAny(w, "hybrid", "hibrido", "híbrido") || containsAny(l, "hybrid", "hibrido", "híbrido") || containsAny(d, "hybrid work", "hybrid role", "hybrid position", "work hybrid", "trabalho hibrido", "trabalho híbrido", "vaga híbrida", "vaga hibrida")
 	onsite := containsAny(w, "onsite", "on site", "in person", "presencial") || containsAny(d, "onsite", "on site", "in person", "office-based", "office based", "must work from the office", "presencial", "trabalho presencial", "modelo presencial")
 	physicalMaceio := containsAny(combined, "maceio", "alagoas")
+	outsideAlagoasState := brazilStateCode.MatchString(l) && !containsAny(l, " al ", "alagoas", "maceio")
 
 	if remote && (hybrid || onsite) {
 		return "uncertain_location", "posting contains conflicting remote and physical-workplace signals"
@@ -60,6 +62,8 @@ func ClassifyLocation(j domain.Job) (string, string) {
 	if physicalMaceio && containsAny(combined, "brazil", "brasil", "alagoas", "maceio") {
 		return "approved", "physical location is Maceio/Alagoas"
 	}
+	if outsideAlagoasState {
+		return "rejected_location", "physical location is outside Maceio/Alagoas"
 	if hybrid || onsite || physicalMaceio {
 		return "rejected_location", "onsite or hybrid physical location is not Maceio/Alagoas"
 	}
