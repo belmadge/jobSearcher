@@ -173,3 +173,23 @@ func TestUnmentionedCategoriesAreNeutral(t *testing.T) {
 	if j.AIMatch != 50 { t.Fatalf("unmentioned AI should be neutral: %d", j.AIMatch) }
 	if j.FitScore < 60 { t.Fatalf("compatible backend role should not be pushed below threshold by missing categories: %d", j.FitScore) }
 }
+
+func TestYearsRequirementDoesNotInventSeniority(t *testing.T) {
+	p := profile()
+	j := domain.Job{Title: "Software Engineer", Description: "Backend APIs with Go. 2+ years of experience."}
+	Score(&j, p)
+	if j.SeniorityMatch != 85 {
+		t.Fatalf("years requirement must not invent Engineer I seniority: got %d (%s)", j.SeniorityMatch, j.SeniorityReason)
+	}
+	if j.Seniority == "Engineer I" {
+		t.Fatal("generic role with years requirement must not be labeled Engineer I")
+	}
+}
+
+func TestAdditionalFalsePositiveRolesAreRejected(t *testing.T) {
+	for _, title := range []string{"Java Developer", "Security Specialist", "Security Analyst", "Head of Security", "IAM Engineer"} {
+		if IsRelevant(domain.Job{Title: title, Description: "Go AWS Kubernetes backend APIs"}) {
+			t.Fatalf("expected unrelated specialized role to be rejected: %s", title)
+		}
+	}
+}
