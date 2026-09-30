@@ -50,7 +50,7 @@ func runSearch(ctx context.Context,profile config.Profile,search config.Search,b
    } else if job.LocationEligible==domain.LocationRejected { rejected++ }
   }
  }
- process(jobs,false)
+ process(freshCandidates,false)
  process(archivedCandidates,true)
  accepted=dedupe.Jobs(accepted);senior=dedupe.Jobs(senior);archived=dedupe.Jobs(archived)
  sort.SliceStable(accepted,func(i,j int)bool{return accepted[i].FitScore>accepted[j].FitScore})
