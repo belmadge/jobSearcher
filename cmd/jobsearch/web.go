@@ -22,7 +22,7 @@ const webPage = `<!doctype html>
 <title>JobSearcher</title>
 <style>
 body{font-family:system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0 20px;background:#f7f7f8;color:#202124}.card{background:white;border:1px solid #ddd;border-radius:14px;padding:24px;margin-bottom:18px}label{display:block;font-weight:600;margin:14px 0 6px}input,select{width:100%;box-sizing:border-box;padding:11px;border:1px solid #bbb;border-radius:8px}.checks{display:flex;gap:18px;flex-wrap:wrap}.checks label{font-weight:400;margin:8px 0}.checks input{width:auto}button{margin-top:20px;padding:12px 18px;border:0;border-radius:9px;background:#111;color:#fff;font-weight:700;cursor:pointer}.job{border-top:1px solid #eee;padding:16px 0}.score{font-size:22px;font-weight:800}.muted{color:#666}
-</style></head><body>
+@media(max-width:600px){body{margin:15px auto}.card{padding:18px}.score{font-size:18px}}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#eee;font-size:12px;margin:2px}</style></head><body>
 <div class="card"><h1>JobSearcher</h1><p>Encontre vagas compatíveis com seu perfil sem enviar ou armazenar seu currículo.</p>
 <form method="post">
 <label>Cargo / área</label><input name="roles" placeholder="Backend Developer, Software Engineer" value="{{.Roles}}">
@@ -32,7 +32,7 @@ body{font-family:system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0
 <label>Localização</label><input name="location" placeholder="Brasil, São Paulo, Maceió..." value="{{.Location}}">
 <label>Modelo de trabalho</label><div class="checks"><label><input type="checkbox" name="remote" checked> Remoto</label><label><input type="checkbox" name="hybrid" checked> Híbrido</label><label><input type="checkbox" name="onsite"> Presencial</label></div>
 <button type="submit">🔎 Buscar vagas</button></form></div>
-{{if .Searched}}<div class="card"><h2>Resultados</h2><p class="muted">{{.Count}} vagas elegíveis encontradas.</p>{{range .Jobs}}<div class="job"><div class="score">{{.FitScore}}% — {{.Title}}</div><strong>{{.Company}}</strong><div class="muted">{{.Location}} · {{.WorkplaceType}} · {{.Seniority}}</div><div class="skills">✓ {{join .MustHaveMatch}} {{if .MustHaveMissing}} · △ {{join .MustHaveMissing}}{{end}}</div><div class="skills">Fonte: {{.Source}}</div><p><a href="{{.URL}}" target="_blank" rel="noopener">Ver vaga →</a></p></div>{{else}}<p>Nenhuma vaga encontrada com esses critérios.</p>{{end}}</div>{{end}}
+{{if .Searched}}<div class="card"><h2>Resultados</h2><p class="muted">{{.Count}} vagas elegíveis encontradas.</p>{{range .Jobs}}<div class="job"><div class="score">{{.FitScore}}% — {{.Title}}</div><strong>{{.Company}}</strong><div class="muted">{{.Location}} · {{.WorkplaceType}} · {{.Seniority}}</div><div class="skills">✓ {{join .MustHaveMatch}} {{if .MustHaveMissing}} · △ {{join .MustHaveMissing}}{{end}}</div><div class="skills"><span class="pill">{{.Source}}</span><span class="pill">{{.RecommendationStatus}}</span></div><p><a href="{{.URL}}" target="_blank" rel="noopener">Ver vaga →</a></p></div>{{else}}<p>Nenhuma vaga encontrada com esses critérios.</p>{{end}}</div>{{end}}
 </body></html>`
 
 type webView struct { Roles, Skills, Experience, Location, Seniority string; Searched bool; Count int; Jobs []domain.Job }
