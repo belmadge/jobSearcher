@@ -72,6 +72,7 @@ func requiredYears(text string) []int {
 		if len(match) < 2 { continue }
 		var years int
 		fmt.Sscanf(match[1], "%d", &years)
+		if len(match) > 2 && match[2] != "" { var maxYears int; fmt.Sscanf(match[2], "%d", &maxYears); if maxYears > years { years = maxYears } }
 		if years > 0 { out = appendUniqueInt(out, years) }
 	}
 	return out
@@ -115,7 +116,7 @@ var irrelevantTitleTerms = []string{
 	"red team", "red-team", "penetration tester", "penetration testing", "pentester", "cybersecurity", "cyber security", "security engineer", "security specialist", "security analyst", "head of security", "iam engineer",
 	"qa engineer", "quality assurance", "sdet", "test engineer", "data scientist",
 	"executivo de contas", "executiva de contas", "analista comercial", "analista de contas", "analista de operacoes", "analista de operações", "supervisor de operacoes", "supervisor de operações", "especialista de planejamento", "planejamento e performance", "marketplace", "farmer", "closing",
-	"machine learning engineer", "ml engineer", "data engineer", "data analyst", "java developer", "java engineer", "kotlin developer", "kotlin engineer", "ruby developer", "ruby on rails", "django engineer", "python developer", "python engineer", ".net developer", "dotnet developer", "c# developer", "devsecops", "security", "iam", "appsec", "application security", "qa", "quality assurance", "sdet", "test engineer", "ios", "android", "ux ", "ui ",
+	"machine learning engineer", "ml engineer", "data engineer", "data analyst", "java developer", "java engineer", "kotlin developer", "kotlin engineer", "ruby developer", "ruby on rails", "django engineer", "python developer", "python engineer", ".net developer", "dotnet developer", "c# developer", "devsecops", "security", "iam", "appsec", "application security", "quality assurance", "sdet", "test engineer", "ios", "android", "ux ", "ui ",
 }
 
 func IsRelevant(j domain.Job) bool {
