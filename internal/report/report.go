@@ -6,7 +6,7 @@ import (
  "strings"
 )
 
-func Markdown(jobs []domain.Job, uncertain []domain.Job, rejected, found int, generatedAt string) string {
+func Markdown(jobs []domain.Job, uncertain []domain.Job, rejected, found, irrelevant, outsideSeniority, lowFit, stale int, generatedAt string) string {
  var b strings.Builder
  b.WriteString("# JobSearcher — resultados da busca\n\n")
  b.WriteString("**Executado em:** "+generatedAt+"\n\n")
@@ -27,6 +27,6 @@ func Markdown(jobs []domain.Job, uncertain []domain.Job, rejected, found int, ge
   fmt.Fprintf(&b,"- **%s — %s** — %s. Local: %s. Link: %s\n",j.Title,j.Company,j.LocationReason,j.Location,j.URL)
  }
  b.WriteString("\n")
- fmt.Fprintf(&b,"## Estatísticas\n\n- Vagas encontradas: %d\n- Vagas elegíveis: %d\n- Vagas incertas: %d\n- Rejeitadas por localização: %d\n",found,len(jobs),len(uncertain),rejected)
+ fmt.Fprintf(&b,"## Estatísticas\n\n- Vagas encontradas: %d\n- Vagas elegíveis (score mínimo): %d\n- Vagas incertas: %d\n- Rejeitadas por localização: %d\n- Fora do perfil por título: %d\n- Senioridade fora do alvo: %d\n- Abaixo do score mínimo: %d\n- Antigas: %d\n",found,len(jobs),len(uncertain),rejected,irrelevant,outsideSeniority,lowFit,stale)
  return b.String()
 }
