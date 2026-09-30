@@ -234,10 +234,10 @@ func inferSeniority(j domain.Job) (int, string) {
 func seniorityLabel(score int, reason string) string {
 	lower := strings.ToLower(reason)
 	switch {
-	case strings.Contains(lower, "engineer i level") || strings.Contains(lower, "engineer i"):
-		return "Engineer I"
 	case strings.Contains(lower, "engineer ii level") || strings.Contains(lower, "engineer ii"):
 		return "Engineer II"
+	case strings.Contains(lower, "engineer i level") || strings.Contains(lower, "engineer i"):
+		return "Engineer I"
 	case strings.Contains(lower, "senior-level"), strings.Contains(lower, "senior-level title"):
 		return "Senior"
 	case strings.Contains(lower, "leadership/staff-level"):
