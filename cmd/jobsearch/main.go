@@ -19,25 +19,36 @@ func runSearch(ctx context.Context,profile config.Profile,search config.Search,b
  tokens,sites=unique(tokens),unique(sites)
  query:=sources.Query{Terms:search.PreferredTitles,Location:search.Location,BoardTokens:tokens,LeverSites:sites}
  jobs,err:=fetchSources(ctx,sourceName,query)
-	jobs = limitJobsPerSource(jobs, search.MaxJobsPerSource)
  if err!=nil{fmt.Fprintln(os.Stderr,"source warning:",err)}
  if len(jobs)==0&&err!=nil{return err}
  accepted:=[]domain.Job{};uncertain:=[]domain.Job{};rejected:=0;irrelevant:=0;stale:=0;outsideSeniority:=0;lowFit:=0
+ freshCandidates:=make([]domain.Job,0,len(jobs))
  for i:=range jobs{
   if !isFresh(jobs[i],search.FreshnessDays){stale++;continue}
   if !matching.IsRelevant(jobs[i]) { irrelevant++; continue }
-  job:=filter.Evaluate(jobs[i]);switch job.LocationEligible{case domain.LocationEligible:
-			matching.Score(&job,profile)
-			if job.SeniorityMatch <= 55 {
-				outsideSeniority++
-				continue
-			}
-			job.RecommendationStatus=recommendation(job.FitScore,search.MinimumFitScore)
-			if job.FitScore < search.MinimumFitScore {
-				lowFit++
-				continue
-			}
-			accepted=append(accepted,job);case domain.LocationUnknown:job.RecommendationStatus=domain.UncertainLocation;uncertain=append(uncertain,job);default:job.RecommendationStatus=domain.RejectedLocation;rejected++}}
+  freshCandidates=append(freshCandidates,jobs[i])
+ }
+ jobs=limitJobsPerSource(freshCandidates,search.MaxJobsPerSource)
+ for i:=range jobs{
+  job:=filter.Evaluate(jobs[i])
+  matching.Score(&job,profile)
+  if job.SeniorityMatch <= 55 {
+   outsideSeniority++
+   continue
+  }
+  job.RecommendationStatus=recommendation(job.FitScore,search.MinimumFitScore)
+  if job.LocationEligible==domain.LocationEligible {
+   if job.FitScore < search.MinimumFitScore {
+    lowFit++
+    continue
+   }
+   accepted=append(accepted,job)
+  } else if job.LocationEligible==domain.LocationUnknown {
+   uncertain=append(uncertain,job)
+  } else {
+   rejected++
+  }
+ }
  accepted=dedupe.Jobs(accepted);sort.SliceStable(accepted,func(i,j int)bool{return accepted[i].FitScore>accepted[j].FitScore})
  if !dryRun{if err:=os.MkdirAll("data",0755);err!=nil{return err};repo,err:=sqlite.Open(filepath.Join("data","jobsearch.db"));if err!=nil{return err};defer repo.Close();for i:=range accepted{if _,err:=repo.SaveJob(ctx,&accepted[i]);err!=nil{return err}};for i:=range uncertain{if _,err:=repo.SaveJob(ctx,&uncertain[i]);err!=nil{return err}}}
  now:=time.Now().Format("2006-01-02");if err:=os.MkdirAll("reports",0755);err!=nil{return err};if err:=os.WriteFile(filepath.Join("reports",now+".md"),[]byte(report.Markdown(accepted,uncertain,rejected,len(jobs),irrelevant,outsideSeniority,lowFit,stale,now)),0644);err!=nil{return err}
