@@ -167,3 +167,18 @@ A busca não faz candidatura automática.
 **Indeed:** a plataforma possui APIs e regras específicas de integração; não será usada como scraper de HTML.
 
 O objetivo é ampliar a cobertura sem transformar o JobSearcher em um robô frágil ou dependente de credenciais de terceiros.
+
+
+## Interface web
+
+A primeira versão do JobSearcher também pode ser usada por uma interface local, sem upload de currículo e sem login.
+
+    go run ./cmd/jobsearch web
+
+Depois abra `http://localhost:8080`.
+
+A configuração é feita durante a sessão: cargo/área desejada; skills; senioridade; anos de experiência; localização; e modelo de trabalho (remoto, híbrido ou presencial).
+
+O perfil informado no formulário é mantido apenas em memória durante a busca. O JobSearcher não precisa armazenar currículo, nome, telefone, e-mail ou outros dados pessoais para realizar o matching.
+
+O formulário usa o mesmo pipeline existente de fontes, filtros, localização, senioridade, matching, score e deduplicação do CLI. A aplicação continua apenas encontrando e apresentando vagas; não envia candidaturas nem mensagens para recrutadores.
