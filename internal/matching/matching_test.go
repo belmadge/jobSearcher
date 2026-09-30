@@ -133,3 +133,17 @@ func TestGenericSoftwareEngineerNeedsBackendSignal(t *testing.T) {
 		t.Fatal("backend software engineer should be relevant")
 	}
 }
+
+
+func TestSpecializedPlatformRolesAreRejected(t *testing.T) {
+	roles := []domain.Job{
+		{Title: "Senior Shopify Developer", Description: "Build Shopify stores, themes and integrations with APIs"},
+		{Title: "Salesforce Developer", Description: "Develop Salesforce applications and integrations"},
+		{Title: "WordPress Developer", Description: "Build WordPress sites and plugins"},
+	}
+	for _, j := range roles {
+		if IsRelevant(j) {
+			t.Fatalf("expected specialized platform role to be rejected: %s", j.Title)
+		}
+	}
+}
