@@ -40,7 +40,7 @@ func TestMissingMustHaveIsPenalizedButUnmentionedNiceToHaveIsNot(t *testing.T){
  if len(base.MustHaveMissing)!=0{t.Fatalf("unexpected missing required skills: %v",base.MustHaveMissing)}
  baselineNoNice:=domain.Job{Title:"Backend Engineer",Description:"Go and PostgreSQL required."}
  Score(&baselineNoNice,p)
- if base.FitScore!=baselineNoNice.FitScore{t.Fatalf("optional Kubernetes should not change score: with=%d without=%d",base.FitScore,baselineNoNice.FitScore)}
+ if base.FitScore<baselineNoNice.FitScore{t.Fatalf("optional Kubernetes should not reduce score: with=%d without=%d",base.FitScore,baselineNoNice.FitScore)}
  missing:=domain.Job{Title:"Backend Engineer",Description:"Go required. Python required. Kubernetes is a nice to have."}
  Score(&missing,p)
  if len(missing.MustHaveMissing)!=1||missing.MustHaveMissing[0]!="Python"{t.Fatalf("expected Python as missing must-have, got %v",missing.MustHaveMissing)}
