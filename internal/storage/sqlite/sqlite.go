@@ -54,10 +54,7 @@ func decode(row *sql.Row) (stored, error) {
 }
 
 func (r *Repository) lookup(ctx context.Context, tx *sql.Tx, source, sourceID, canonical, fallback string) (stored, error) {
-	queries := []struct{ sql string; arg any }{}
-	if source != "" && sourceID != "" { queries = append(queries, struct{sql string; arg any}{`SELECT j.record_id,j.payload FROM job_source_ids s JOIN jobs j ON j.record_id=s.job_id WHERE s.source=? AND s.source_id=? LIMIT 1`, source}, sourceID) }
-	_ = queries
-	if source != "" && sourceID != "" {
+		if source != "" && sourceID != "" {
 		x, err := decode(tx.QueryRowContext(ctx, `SELECT j.record_id,j.payload FROM job_source_ids s JOIN jobs j ON j.record_id=s.job_id WHERE s.source=? AND s.source_id=? LIMIT 1`, source, sourceID))
 		if err == nil { return x, nil }; if !errors.Is(err, sql.ErrNoRows) { return stored{}, err }
 	}
