@@ -47,7 +47,7 @@ func startWebServer(ctx context.Context, boards config.Boards) error {
    roles:=rolesForSeniority(csvValues(v.Roles),v.Seniority); skills:=csvValues(v.Skills)
    profile:=config.Profile{Titles:roles,Technologies:skills,YearsExperience:years,Weights:config.Weights{Technical:35,Responsibility:15,Seniority:25,Cloud:10,Domain:7,Language:4,AI:4}}
    search:=config.Search{Location:v.Location,RemoteAllowed:[]string{"Brazil","LATAM","South America","Worldwide","Americas"},PreferredTitles:roles,MinimumFitScore:60,FreshnessDays:7,ArchiveDays:30,MaxJobsPerSource:100}
-   jobs,err:=searchForWeb(ctx,profile,search,boards); if err!=nil {http.Error(w,"erro ao buscar vagas: "+err.Error(),http.StatusBadGateway);return}; v.Searched=true;v.Jobs=jobs;v.Count=len(jobs)
+   jobs,err:=searchForWeb(ctx,profile,search,boards,r.FormValue("remote")!="" ,r.FormValue("hybrid")!="" ,r.FormValue("onsite")!=""); if err!=nil {http.Error(w,"erro ao buscar vagas: "+err.Error(),http.StatusBadGateway);return}; v.Searched=true;v.Jobs=jobs;v.Count=len(jobs)
   }
   _=template.Must(template.New("page").Parse(webPage)).Execute(w,v)
  })
@@ -55,16 +55,19 @@ func startWebServer(ctx context.Context, boards config.Boards) error {
  return http.ListenAndServe(":8080",mux)
 }
 
-func searchForWeb(ctx context.Context,profile config.Profile,search config.Search,boards config.Boards)([]domain.Job,error){
+func searchForWeb(ctx context.Context,profile config.Profile,search config.Search,boards config.Boards,remote,hybrid,onsite bool)([]domain.Job,error){
  tokens:=[]string{};sites:=[]string{}
  for _,b:=range boards.Greenhouse {if b.Enabled&&strings.TrimSpace(b.Token)!=""{tokens=append(tokens,b.Token)}}
  for _,b:=range boards.Lever {if b.Enabled&&strings.TrimSpace(b.Site)!=""{sites=append(sites,b.Site)}}
  jobs,err:=fetchSources(ctx,"all",sources.Query{Terms:search.PreferredTitles,Location:search.Location,BoardTokens:tokens,LeverSites:sites});if err!=nil&&len(jobs)==0{return nil,err}
  out:=[]domain.Job{}
- for _,j:=range jobs {if !isWithinDays(j,search.ArchiveDays)||!matching.IsRelevant(j)||!isFresh(j,search.FreshnessDays){continue}; x:=filter.Evaluate(j);matching.Score(&x,profile);if x.LocationEligible==domain.LocationEligible&&x.FitScore>=search.MinimumFitScore&&x.SeniorityMatch>55{out=append(out,x)}}
+ for _,j:=range jobs {if !isWithinDays(j,search.ArchiveDays)||!matching.IsRelevant(j)||!isFresh(j,search.FreshnessDays){continue}; x:=filter.Evaluate(j);matching.Score(&x,profile);if x.LocationEligible==domain.LocationEligible&&x.FitScore>=search.MinimumFitScore&&x.SeniorityMatch>55&&workModelAllowed(x,remote,hybrid,onsite){out=append(out,x)}}
  sort.SliceStable(out,func(i,j int)bool{return out[i].FitScore>out[j].FitScore})
  return dedupe.Jobs(out),nil
 }
 func csvValues(s string)[]string{out:=[]string{};for _,v:=range strings.Split(s,","){if v=strings.TrimSpace(v);v!=""{out=append(out,v)}};return out}
 
 func rolesForSeniority(roles []string, level string) []string { out:=append([]string{},roles...); suffix:=map[string][]string{"junior":{"Junior","Jr","I","Entry Level"},"mid":{"Mid-level","Pleno","II"},"senior":{"Senior","Sênior"},"staff":{"Staff","Principal","Lead"}}[level]; for _,role:=range roles { for _,s:=range suffix { out=append(out,role+" "+s) } }; return out }
+
+func workModelAllowed(j domain.Job,remote,hybrid,onsite bool) bool { if !remote&&!hybrid&&!onsite{return true}; text:=strings.ToLower(j.WorkplaceType+" "+j.Location+" "+j.Description[:minLen(len(j.Description),500)]); ok:=false; if remote&&(strings.Contains(text,"remote")||strings.Contains(text,"remoto")){ok=true}; if hybrid&&(strings.Contains(text,"hybrid")||strings.Contains(text,"híbrido")||strings.Contains(text,"hibrido")){ok=true}; if onsite&&(strings.Contains(text,"onsite")||strings.Contains(text,"on-site")||strings.Contains(text,"presencial")){ok=true}; return ok }
+func minLen(a,b int) int {if a<b{return a};return b}
