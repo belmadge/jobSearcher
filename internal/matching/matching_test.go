@@ -52,3 +52,35 @@ func TestNiceToHaveMatchIsTracked(t *testing.T){
  found:=false;for _,v:=range j.NiceToHaveMatch{if v=="Terraform"{found=true}}
  if !found{t.Fatalf("expected Terraform nice-to-have match, got %v",j.NiceToHaveMatch)}
 }
+
+
+func TestIsRelevantRole(t *testing.T) {
+	allowed := []domain.Job{
+		{Title: "Backend Go Engineer"},
+		{Title: "Software Engineer II"},
+		{Title: "Platform Engineer"},
+		{Title: "Golang Developer"},
+	}
+	for _, j := range allowed {
+		if !IsRelevant(j) { t.Fatalf("expected relevant role: %s", j.Title) }
+	}
+	rejected := []domain.Job{
+		{Title: "Technical Product Manager"},
+		{Title: "Lead Product Designer"},
+		{Title: "Business Development Manager"},
+		{Title: "Remote Office Assistant"},
+	}
+	for _, j := range rejected {
+		if IsRelevant(j) { t.Fatalf("expected unrelated role: %s", j.Title) }
+	}
+}
+
+func TestSeniorAndStaffGuardrails(t *testing.T) {
+	p := profile()
+	staff := domain.Job{Title: "Staff Backend Engineer", Description: "Go PostgreSQL AWS Kubernetes Docker Terraform APIs"}
+	Score(&staff, p)
+	if staff.FitScore >= 60 { t.Fatalf("staff role should not enter the shortlist: got %d", staff.FitScore) }
+	senior := domain.Job{Title: "Senior Backend Engineer", Description: "Go PostgreSQL AWS Kubernetes Docker Terraform APIs"}
+	Score(&senior, p)
+	if senior.FitScore >= 75 { t.Fatalf("senior role should remain below high-compatibility threshold: got %d", senior.FitScore) }
+}
