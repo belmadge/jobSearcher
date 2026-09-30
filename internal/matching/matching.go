@@ -89,6 +89,7 @@ func requiredTechnologyYears(text string) map[string]int {
 		if len(match) < 3 { continue }
 		var years int
 		fmt.Sscanf(match[1], "%d", &years)
+		if len(match) > 3 && match[2] != "" { var maxYears int; fmt.Sscanf(match[2], "%d", &maxYears) }
 		if len(match) > 3 && match[2] != "" { var maxYears int; fmt.Sscanf(match[2], "%d", &maxYears); if maxYears > years { years = maxYears } }
 		tech := canonical(match[3])
 		if years > out[tech] { out[tech] = years }
@@ -97,9 +98,7 @@ func requiredTechnologyYears(text string) map[string]int {
 }
 
 func profileTechnologyYears(p config.Profile, technology string) int {
-	for key, years := range p.TechnologyYears {
-		if canonical(key) == canonical(technology) { return years }
-	}
+	for key, years := range p.TechnologyYears { if canonical(key) == canonical(technology) { return years } }
 	return 0
 }
 
@@ -119,29 +118,22 @@ var irrelevantTitleTerms = []string{
 	"machine learning engineer", "ml engineer", "data engineer", "data analyst", "java developer", "java engineer", "kotlin developer", "kotlin engineer", "ruby developer", "ruby on rails", "django engineer", "python developer", "python engineer", ".net developer", "dotnet developer", "c# developer", "devsecops", "security", "iam", "appsec", "application security", "quality assurance", "sdet", "test engineer", "ios", "android", "ux ", "ui ",
 }
 
-func IsRelevant(j domain.Job) bool {
-	title := strings.ToLower(strings.TrimSpace(j.Title))
-	for _, term := range irrelevantTitleTerms {
-		if strings.Contains(title, term) { return false }
+func IsRelevant(j domain.Job, requestedRoles ...string) bool {
+	if len(requestedRoles) > 0 {
+		return matchesRequestedRole(j, requestedRoles)
 	}
-	// Common Brazilian non-engineering titles should not reach location review just because
-	// their descriptions mention generic business/technology terms.
+	title := strings.ToLower(strings.TrimSpace(j.Title))
+	for _, term := range irrelevantTitleTerms { if strings.Contains(title, term) { return false } }
 	if strings.Contains(title, "analista") || strings.Contains(title, "supervisor") || strings.Contains(title, "especialista") {
 		technicalTitleSignals := []string{"sistemas", "software", "desenvolvedor", "desenvolvedora", "backend", "api", "dados", "data", "cloud", "infraestrutura", "infrastructure", "devops", "engenheiro", "engenheira", "programador", "programadora"}
 		technical := false
 		for _, signal := range technicalTitleSignals { if strings.Contains(title, signal) { technical = true; break } }
 		if !technical { return false }
 	}
-	// Explicit engineering targets are relevant even when the posting uses generic
-	// terminology in the description. Compatibility is decided later by Score.
 	for _, term := range relevantTitleTerms {
 		if !strings.Contains(title, term) { continue }
-		// Generic Software Engineer/Developer is only relevant when the posting
-		// contains a backend/platform signal. Explicit I/II targets are accepted.
 		if term == "software engineer" || term == "software developer" {
-			if strings.Contains(title, "software engineer i") || strings.Contains(title, "software engineer ii") || strings.Contains(title, "software engineer 1") || strings.Contains(title, "software engineer 2") {
-				return true
-			}
+			if strings.Contains(title, "software engineer i") || strings.Contains(title, "software engineer ii") || strings.Contains(title, "software engineer 1") || strings.Contains(title, "software engineer 2") { return true }
 			all := strings.ToLower(strings.Join([]string{j.Title, j.Description, j.Requirements}, " "))
 			for _, signal := range []string{"backend", "back-end", "api", "service", "services", "microservice", "distributed systems", "platform", "cloud", "infrastructure", "integration", "go", "golang", "postgresql", "rest", "grpc", "message queue"} {
 				if strings.Contains(all, signal) { return true }
@@ -150,18 +142,48 @@ func IsRelevant(j domain.Job) bool {
 		}
 		return true
 	}
-	// For generic "Engineer/Developer" titles, require a backend/platform signal
-	// to avoid admitting unrelated engineering disciplines.
 	all := strings.ToLower(strings.Join([]string{j.Title, j.Description, j.Requirements}, " "))
-	backendSignals := []string{
-		"backend", "back-end", "api", "apis", "service", "services", "microservice",
-		"distributed systems", "platform", "cloud", "infrastructure", "integration",
-		"go", "golang", "postgresql", "rest", "grpc", "message queue",
-	}
-	for _, signal := range backendSignals {
+	for _, signal := range []string{"backend", "back-end", "api", "apis", "service", "services", "microservice", "distributed systems", "platform", "cloud", "infrastructure", "integration", "go", "golang", "postgresql", "rest", "grpc", "message queue"} {
 		if strings.Contains(all, signal) { return true }
 	}
 	return false
+}
+
+func matchesRequestedRole(j domain.Job, requestedRoles []string) bool {
+	title := normalizeRoleText(j.Title)
+	for _, requested := range requestedRoles {
+		role := normalizeRoleText(requested)
+		if role == "" { continue }
+		if role == "qa" || strings.Contains(role, "quality assurance") {
+			if strings.Contains(title, " qa") || strings.HasPrefix(title, "qa ") || strings.Contains(title, "quality assurance") || strings.Contains(title, "sdet") || strings.Contains(title, "test engineer") { return true }
+			continue
+		}
+		if role == "backend developer" || role == "backend engineer" || strings.Contains(role, "backend") {
+			if strings.Contains(title, "backend") || strings.Contains(title, "back end") || strings.Contains(title, "back-end") {
+				return true
+			}
+			continue
+		}
+		if role == "software engineer" || role == "software developer" {
+			if strings.Contains(title, "software engineer") || strings.Contains(title, "software developer") { return true }
+			continue
+		}
+		words := strings.Fields(role)
+		matched := 0
+		for _, word := range words {
+			if word == "developer" || word == "developer" { if strings.Contains(title, "developer") || strings.Contains(title, "engineer") { matched++; continue } }
+			if word == "engineer" && (strings.Contains(title, "engineer") || strings.Contains(title, "developer")) { matched++; continue }
+			if strings.Contains(title, word) { matched++ }
+		}
+		if matched == len(words) { return true }
+	}
+	return false
+}
+
+func normalizeRoleText(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = strings.NewReplacer("-", " ", "_", " ", "/", " ", "(", " ", ")", " ", ",", " ").Replace(s)
+	return strings.Join(strings.Fields(s), " ")
 }
 
 // Score uses explicit required language for penalties. Missing optional or unmentioned profile skills do not reduce the score.
@@ -175,13 +197,9 @@ func Score(j *domain.Job, p config.Profile) {
 		for _, skill := range p.Technologies { if canonical(skill) == canonical(term) { inProfile = true; break } }
 		if inProfile && mentions(all, term) { j.MustHaveMatch = appendUnique(j.MustHaveMatch, term) } else { j.MustHaveMissing = appendUnique(j.MustHaveMissing, term) }
 	}
-	for _, term := range nice {
-		for _, skill := range p.Technologies { if canonical(skill) == canonical(term) && mentions(all, term) { j.NiceToHaveMatch = appendUnique(j.NiceToHaveMatch, term) } }
-	}
+	for _, term := range nice { for _, skill := range p.Technologies { if canonical(skill) == canonical(term) && mentions(all, term) { j.NiceToHaveMatch = appendUnique(j.NiceToHaveMatch, term) } } }
 	j.TechnicalMatch = clamp(40+len(matched)*10-len(j.MustHaveMissing)*20, 0, 100)
-	// Go is the candidate's strongest specialization, so a direct Go match gets a small bonus.
 	if mentions(all, "Go") { j.TechnicalMatch = clamp(j.TechnicalMatch+5, 0, 100) }
-
 	respTerms := []string{"backend", "api", "service", "distributed systems", "integration"}
 	j.ResponsibilityMatch = categoryCoverage(all, respTerms)
 	cloudTerms := []string{"aws", "cloud", "kubernetes", "docker", "terraform", "infrastructure"}
@@ -191,26 +209,17 @@ func Score(j *domain.Job, p config.Profile) {
 	j.AIMatch = neutralCoverage(all, p.EmergingSkills)
 	j.SeniorityMatch, j.SeniorityReason = inferSeniority(*j)
 	j.Seniority = seniorityLabel(j.SeniorityMatch, j.SeniorityReason)
-
 	w := p.Weights
 	j.FitScore = clamp((j.TechnicalMatch*w.Technical+j.ResponsibilityMatch*w.Responsibility+j.SeniorityMatch*w.Seniority+j.CloudMatch*w.Cloud+j.DomainMatch*w.Domain+j.LanguageMatch*w.Language+j.AIMatch*w.AI)/100, 0, 100)
 	if j.SeniorityMatch <= 10 && j.FitScore > 59 { j.FitScore = 59 }
 	if j.SeniorityMatch == 55 && j.FitScore > 74 { j.FitScore = 74 }
 	jobText := strings.Join([]string{j.Title, j.Description, j.Requirements}, " ")
 	for _, years := range requiredYears(jobText) {
-		if p.YearsExperience > 0 && years > p.YearsExperience {
-			gap := fmt.Sprintf("%d+ years experience", years)
-			j.MustHaveMissing = appendUnique(j.MustHaveMissing, gap)
-			j.Reasons = append(j.Reasons, fmt.Sprintf("Experience gap: job asks %d+ years; profile has about %d years", years, p.YearsExperience))
-		}
+		if p.YearsExperience > 0 && years > p.YearsExperience { gap := fmt.Sprintf("%d+ years experience", years); j.MustHaveMissing = appendUnique(j.MustHaveMissing, gap); j.Reasons = append(j.Reasons, fmt.Sprintf("Experience gap: job asks %d+ years; profile has about %d years", years, p.YearsExperience)) }
 	}
 	for tech, years := range requiredTechnologyYears(jobText) {
 		available := profileTechnologyYears(p, tech)
-		if available > 0 && years > available {
-			gap := fmt.Sprintf("%d+ years %s", years, tech)
-			j.MustHaveMissing = appendUnique(j.MustHaveMissing, gap)
-			j.Reasons = append(j.Reasons, fmt.Sprintf("Experience gap: job asks %d+ years %s; profile has about %d years", years, tech, available))
-		}
+		if available > 0 && years > available { gap := fmt.Sprintf("%d+ years %s", years, tech); j.MustHaveMissing = appendUnique(j.MustHaveMissing, gap); j.Reasons = append(j.Reasons, fmt.Sprintf("Experience gap: job asks %d+ years %s; profile has about %d years", years, tech, available)) }
 	}
 	if len(j.MustHaveMissing) > 0 {
 		j.TechnicalMatch = clamp(j.TechnicalMatch-len(j.MustHaveMissing)*10, 0, 100)
@@ -229,81 +238,31 @@ func Score(j *domain.Job, p config.Profile) {
 func inferSeniority(j domain.Job) (int, string) {
 	level := strings.ToLower(strings.TrimSpace(j.Title + " " + j.Seniority))
 	switch {
-	case containsAny(level, "staff", "principal", "director", "manager", "team lead", " tech lead", "lead "):
-		return 10, "Leadership/staff-level title; outside the target I/II range"
-	case strings.Contains(level, "senior"):
-		return 55, "Senior-level title; considered above the primary I/II target"
-	case strings.Contains(level, "software engineer ii") || strings.Contains(level, "software engineer 2") || strings.Contains(level, "engineer ii") || strings.Contains(level, "engineer 2"):
-		return 78, "Explicit Engineer II level; secondary target"
-	case strings.Contains(level, "software engineer i") || strings.Contains(level, "software engineer 1") || strings.Contains(level, "engineer i") || strings.Contains(level, "engineer 1"):
-		return 95, "Explicit Engineer I level; primary target"
-	case containsAny(level, "junior", "entry level", "entry-level", "associate", "new grad", "graduate"):
-		return 90, "Entry/junior/associate level; close to the primary target"
-	case containsAny(level, "mid-level", "mid level", "intermediate", "pleno"):
-		return 85, "Mid-level title; compatible with the target range"
+	case containsAny(level, "staff", "principal", "director", "manager", "team lead", " tech lead", "lead "): return 10, "Leadership/staff-level title; outside the target I/II range"
+	case strings.Contains(level, "senior"): return 55, "Senior-level title; considered above the primary I/II target"
+	case strings.Contains(level, "software engineer ii") || strings.Contains(level, "software engineer 2") || strings.Contains(level, "engineer ii") || strings.Contains(level, "engineer 2"): return 78, "Explicit Engineer II level; secondary target"
+	case strings.Contains(level, "software engineer i") || strings.Contains(level, "software engineer 1") || strings.Contains(level, "engineer i") || strings.Contains(level, "engineer 1"): return 95, "Explicit Engineer I level; primary target"
+	case containsAny(level, "junior", "entry level", "entry-level", "associate", "new grad", "graduate"): return 90, "Entry/junior/associate level; close to the primary target"
+	case containsAny(level, "mid-level", "mid level", "intermediate", "pleno"): return 85, "Mid-level title; compatible with the target range"
 	}
-
-	// Years-of-experience requirements are used for experience-gap scoring, not to
-	// invent a seniority level. A posting asking for 1-2 years can still be a
-	// generic Software Engineer role, and should not be relabeled as Engineer I.
-	if strings.Contains(level, "software engineer") || strings.Contains(level, "software developer") {
-		return 85, "Generic Software Engineer title; backend-compatible and no higher level stated"
-	}
+	if strings.Contains(level, "software engineer") || strings.Contains(level, "software developer") { return 85, "Generic Software Engineer title; backend-compatible and no higher level stated" }
 	return 60, "Seniority not explicit"
 }
 
 func seniorityLabel(score int, reason string) string {
 	lower := strings.ToLower(reason)
 	switch {
-	case strings.Contains(lower, "engineer ii level") || strings.Contains(lower, "engineer ii"):
-		return "Engineer II"
-	case strings.Contains(lower, "engineer i level") || strings.Contains(lower, "engineer i"):
-		return "Engineer I"
-	case strings.Contains(lower, "senior-level"), strings.Contains(lower, "senior-level title"):
-		return "Senior"
-	case strings.Contains(lower, "leadership/staff-level"):
-		return "Staff/Lead"
-	case score >= 90:
-		return "Junior/Associate"
-	case score >= 80:
-		return "Mid-level"
-	default:
-		return "Not explicit"
+	case strings.Contains(lower, "engineer ii"): return "Engineer II"
+	case strings.Contains(lower, "engineer i"): return "Engineer I"
+	case strings.Contains(lower, "senior-level"): return "Senior"
+	case strings.Contains(lower, "leadership/staff-level"): return "Staff/Lead"
+	case score >= 90: return "Junior/Associate"
+	case score >= 80: return "Mid-level"
+	default: return "Not explicit"
 	}
 }
 
-func containsAny(text string, terms ...string) bool {
-	for _, term := range terms {
-		if strings.Contains(text, term) {
-			return true
-		}
-	}
-	return false
-}
-
-func termCoverage(text string, terms []string) int {
-	if len(terms) == 0 { return 0 }
-	hits := 0
-	for _, term := range terms { if mentions(text, term) { hits++ } }
-	return hits * 100 / len(terms)
-}
-
-// categoryCoverage gives partial credit when a category is represented but the posting does not enumerate every related term.
-// A single valid signal is not treated as a mismatch merely because the posting omits other terms.
-func categoryCoverage(text string, terms []string) int {
-	if len(terms) == 0 { return 50 }
-	coverage := termCoverage(text, terms)
-	if coverage == 0 { return 50 }
-	return 50 + coverage/2
-}
-
-// neutralCoverage treats an unmentioned category as "unknown" rather than as a
-// mismatch. This prevents a normal backend job from losing points merely because
-// it does not mention fintech, English, or AI in the posting.
-func neutralCoverage(text string, terms []string) int {
-	if len(terms) == 0 { return 50 }
-	for _, term := range terms {
-		if mentions(text, term) { return termCoverage(text, terms) }
-	}
-	return 50
-}
+func containsAny(text string, terms ...string) bool { for _, term := range terms { if strings.Contains(text, term) { return true } }; return false }
+func termCoverage(text string, terms []string) int { if len(terms) == 0 { return 0 }; hits:=0; for _,term:=range terms {if mentions(text,term){hits++}}; return hits*100/len(terms) }
+func categoryCoverage(text string, terms []string) int { if len(terms)==0{return 50}; coverage:=termCoverage(text,terms);if coverage==0{return 50};return 50+coverage/2 }
+func neutralCoverage(text string, terms []string) int { if len(terms)==0{return 50};for _,term:=range terms{if mentions(text,term){return termCoverage(text,terms)}};return 50 }
