@@ -226,8 +226,6 @@ func Score(j *domain.Job, p config.Profile) {
 
 func inferSeniority(j domain.Job) (int, string) {
 	level := strings.ToLower(strings.TrimSpace(j.Title + " " + j.Seniority))
-	text := strings.ToLower(strings.Join([]string{j.Title, j.Seniority, j.Description, j.Requirements}, " "))
-
 	switch {
 	case containsAny(level, "staff", "principal", "director", "manager", "team lead", " tech lead", "lead "):
 		return 10, "Leadership/staff-level title; outside the target I/II range"
@@ -243,7 +241,10 @@ func inferSeniority(j domain.Job) (int, string) {
 		return 85, "Mid-level title; compatible with the target range"
 	}
 
-	// Years-of-experience requirements are used for experience-gap scoring, not to\n\t// invent a seniority level. A posting asking for 1-2 years can still be a\n\t// generic Software Engineer role, and should not be relabeled as Engineer I.\n\tif strings.Contains(level, "software engineer") || strings.Contains(level, "software developer") {
+	// Years-of-experience requirements are used for experience-gap scoring, not to
+	// invent a seniority level. A posting asking for 1-2 years can still be a
+	// generic Software Engineer role, and should not be relabeled as Engineer I.
+	if strings.Contains(level, "software engineer") || strings.Contains(level, "software developer") {
 		return 85, "Generic Software Engineer title; backend-compatible and no higher level stated"
 	}
 	return 60, "Seniority not explicit"
