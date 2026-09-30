@@ -46,7 +46,7 @@ func startWebServer(ctx context.Context, boards config.Boards) error {
    years,_:=strconv.Atoi(v.Experience); if years<0 {years=0}
    roles:=csvValues(v.Roles); skills:=csvValues(v.Skills); if len(roles)==0 {http.Error(w,"informe pelo menos um cargo ou área",400);return}; if len(skills)==0 {http.Error(w,"informe pelo menos uma skill",400);return}
    profile:=config.Profile{Titles:roles,Technologies:skills,YearsExperience:years,Weights:config.Weights{Technical:35,Responsibility:15,Seniority:25,Cloud:10,Domain:7,Language:4,AI:4}}
-   search:=config.Search{Location:v.Location,RemoteAllowed:[]string{"Brazil","LATAM","South America","Worldwide","Americas"},PreferredTitles:roles,MinimumFitScore:60,FreshnessDays:7,ArchiveDays:30,MaxJobsPerSource:100}
+   search:=config.Search{Location:"",RemoteAllowed:[]string{"Brazil","LATAM","South America","Worldwide","Americas"},PreferredTitles:roles,MinimumFitScore:55,FreshnessDays:7,ArchiveDays:30,MaxJobsPerSource:100}
    jobs,err:=searchForWeb(ctx,profile,search,boards,roles,r.FormValue("remote")!="" ,r.FormValue("hybrid")!="" ,r.FormValue("onsite")!=""); if err!=nil {http.Error(w,"erro ao buscar vagas: "+err.Error(),http.StatusBadGateway);return}; v.Searched=true;v.Jobs=jobs;v.Count=len(jobs)
   }
   t,err:=template.New("page").Funcs(template.FuncMap{"join":func(v []string)string{return strings.Join(v,", ")}}).Parse(webPage);if err!=nil{http.Error(w,err.Error(),500);return};_=t.Execute(w,v)
@@ -59,9 +59,9 @@ func searchForWeb(ctx context.Context,profile config.Profile,search config.Searc
  tokens:=[]string{};sites:=[]string{}
  for _,b:=range boards.Greenhouse {if b.Enabled&&strings.TrimSpace(b.Token)!=""{tokens=append(tokens,b.Token)}}
  for _,b:=range boards.Lever {if b.Enabled&&strings.TrimSpace(b.Site)!=""{sites=append(sites,b.Site)}}
- jobs,err:=fetchSources(ctx,"all",sources.Query{Terms:search.PreferredTitles,Location:search.Location,BoardTokens:tokens,LeverSites:sites});if err!=nil&&len(jobs)==0{return nil,err}
+ jobs,err:=fetchSources(ctx,"all",sources.Query{Terms:search.PreferredTitles,Location:"",BoardTokens:tokens,LeverSites:sites});if err!=nil&&len(jobs)==0{return nil,err}
  out:=[]domain.Job{}
- for _,j:=range jobs {if !isWithinDays(j,search.ArchiveDays)||!matching.IsRelevant(j,requestedRoles...)||!isFresh(j,search.FreshnessDays){continue}; x:=filter.Evaluate(j);matching.Score(&x,profile);if x.LocationEligible==domain.LocationEligible&&x.FitScore>=search.MinimumFitScore&&x.SeniorityMatch>55&&workModelAllowed(x,remote,hybrid,onsite){out=append(out,x)}}
+ for _,j:=range jobs {if !isWithinDays(j,search.ArchiveDays)||!matching.IsRelevant(j,requestedRoles...)||!isFresh(j,search.FreshnessDays){continue}; x:=filter.Evaluate(j);matching.Score(&x,profile);if x.FitScore>=search.MinimumFitScore&&x.SeniorityMatch>55{out=append(out,x)}}
  sort.SliceStable(out,func(i,j int)bool{return out[i].FitScore>out[j].FitScore})
  return dedupe.Jobs(out),nil
 }
