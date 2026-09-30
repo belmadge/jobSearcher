@@ -43,8 +43,7 @@ func TestFetchJobsRetriesTruncatedJSON(t *testing.T) {
  srv:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
   attempts++
   w.Header().Set("Content-Type","application/json")
-  if attempts == 1 { _,_=w.Write([]byte(`[{"id":"p3","text":"Backend Engineer","categories":{"location":"Remote - Brazil"}`)); return }
-  }
+  if attempts == 1 { _,_=w.Write([]byte(`[{"id":"p3","text":"Backend Engineer","categories":{"location":"Remote - Brazil"}}`)); return }
   _,_=w.Write([]byte(`[{"id":"p3","text":"Backend Engineer","categories":{"location":"Remote - Brazil"}}]`))
  }))
  defer srv.Close()
