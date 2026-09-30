@@ -27,7 +27,7 @@ body{font-family:system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0
 <form method="post">
 <label>Cargo / área</label><input name="roles" placeholder="Backend Developer, Software Engineer" value="{{.Roles}}">
 <label>Skills</label><input name="skills" placeholder="Go, AWS, PostgreSQL, Docker" value="{{.Skills}}">
-<label>Senioridade</label><select name="seniority"><option>Júnior</option><option>Pleno</option><option>Sênior</option><option>Staff / Lead</option></select>
+<label>Senioridade</label><select name="seniority"><option value="junior">Júnior</option><option value="mid">Pleno</option><option value="senior">Sênior</option><option value="staff">Staff / Lead</option></select>
 <label>Anos de experiência</label><input type="number" min="0" name="experience" value="{{.Experience}}">
 <label>Localização</label><input name="location" placeholder="Brasil, São Paulo, Maceió..." value="{{.Location}}">
 <label>Modelo de trabalho</label><div class="checks"><label><input type="checkbox" name="remote" checked> Remoto</label><label><input type="checkbox" name="hybrid" checked> Híbrido</label><label><input type="checkbox" name="onsite"> Presencial</label></div>
@@ -35,16 +35,16 @@ body{font-family:system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0
 {{if .Searched}}<div class="card"><h2>Resultados</h2><p class="muted">{{.Count}} vagas elegíveis encontradas.</p>{{range .Jobs}}<div class="job"><div class="score">{{.FitScore}}% — {{.Title}}</div><strong>{{.Company}}</strong><div class="muted">{{.Location}}</div><div class="skills">Fonte: {{.Source}}</div><p><a href="{{.URL}}" target="_blank" rel="noopener">Ver vaga →</a></p></div>{{else}}<p>Nenhuma vaga encontrada com esses critérios.</p>{{end}}</div>{{end}}
 </body></html>`
 
-type webView struct { Roles, Skills, Experience, Location string; Searched bool; Count int; Jobs []domain.Job }
+type webView struct { Roles, Skills, Experience, Location, Seniority string; Searched bool; Count int; Jobs []domain.Job }
 
 func startWebServer(ctx context.Context, boards config.Boards) error {
  mux:=http.NewServeMux()
  mux.HandleFunc("/",func(w http.ResponseWriter,r *http.Request){
   v:=webView{Experience:"3",Location:"Brazil"}
   if r.Method==http.MethodPost {
-   _=r.ParseForm(); v.Roles=strings.TrimSpace(r.FormValue("roles")); v.Skills=strings.TrimSpace(r.FormValue("skills")); v.Experience=r.FormValue("experience"); v.Location=strings.TrimSpace(r.FormValue("location"))
+   _=r.ParseForm(); v.Roles=strings.TrimSpace(r.FormValue("roles")); v.Skills=strings.TrimSpace(r.FormValue("skills")); v.Experience=r.FormValue("experience"); v.Location=strings.TrimSpace(r.FormValue("location")); v.Seniority=r.FormValue("seniority")
    years,_:=strconv.Atoi(v.Experience); if years<0 {years=0}
-   roles:=csvValues(v.Roles); skills:=csvValues(v.Skills)
+   roles:=rolesForSeniority(csvValues(v.Roles),v.Seniority); skills:=csvValues(v.Skills)
    profile:=config.Profile{Titles:roles,Technologies:skills,YearsExperience:years,Weights:config.Weights{Technical:35,Responsibility:15,Seniority:25,Cloud:10,Domain:7,Language:4,AI:4}}
    search:=config.Search{Location:v.Location,RemoteAllowed:[]string{"Brazil","LATAM","South America","Worldwide","Americas"},PreferredTitles:roles,MinimumFitScore:60,FreshnessDays:7,ArchiveDays:30,MaxJobsPerSource:100}
    jobs,err:=searchForWeb(ctx,profile,search,boards); if err!=nil {http.Error(w,"erro ao buscar vagas: "+err.Error(),http.StatusBadGateway);return}; v.Searched=true;v.Jobs=jobs;v.Count=len(jobs)
@@ -66,3 +66,5 @@ func searchForWeb(ctx context.Context,profile config.Profile,search config.Searc
  return dedupe.Jobs(out),nil
 }
 func csvValues(s string)[]string{out:=[]string{};for _,v:=range strings.Split(s,","){if v=strings.TrimSpace(v);v!=""{out=append(out,v)}};return out}
+
+func rolesForSeniority(roles []string, level string) []string { out:=append([]string{},roles...); suffix:=map[string][]string{"junior":{"Junior","Jr","I","Entry Level"},"mid":{"Mid-level","Pleno","II"},"senior":{"Senior","Sênior"},"staff":{"Staff","Principal","Lead"}}[level]; for _,role:=range roles { for _,s:=range suffix { out=append(out,role+" "+s) } }; return out }
