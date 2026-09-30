@@ -9,7 +9,10 @@ func TestClassifyLocation(t *testing.T) {
 	cases := []struct{ name, work, loc, description, want string }{
 		{"remote eligible broad", "Remote", "Worldwide", "", "approved"},
 		{"remote Brazil", "Remote", "Remote - Brazil", "", "approved"},
+		{"remote Portuguese with office base", "", "Remoto; IFOOD - BASE OSASCO, Osasco - SP", "", "approved"},
+		{"remote Portuguese Brazil with office base", "", "Remoto; IFOOD - BASE OSASCO, Osasco - SP", "Trabalho remoto no Brasil", "approved"},
 		{"remote LATAM", "Remote", "Remote - LATAM", "", "approved"},
+		{"hybrid Portuguese Maceio", "Híbrido", "Maceió, Alagoas", "", "approved"},
 		{"US only", "Remote", "Remote - US only", "", "rejected_location"},
 		{"Europe only", "Remote", "Remote - Europe only", "", "rejected_location"},
 		{"onsite Maceio", "Onsite", "Maceio - AL, Brazil", "", "approved"},
