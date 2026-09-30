@@ -22,6 +22,7 @@ type posting struct {
  Text string `json:"text"`
  Categories struct { Location string `json:"location"`; Team string `json:"team"`; Commitment string `json:"commitment"` } `json:"categories"`
  DescriptionPlain string `json:"descriptionPlain"`
+ WorkplaceType string `json:"workplaceType"`
  AdditionalPlain string `json:"additionalPlain"`
  HostedURL string `json:"hostedUrl"`
  ApplyURL string `json:"applyUrl"`
@@ -46,7 +47,8 @@ func (c *Client) FetchJobs(ctx context.Context,q sources.Query)([]domain.Job,err
 func normalize(site string,p posting)domain.Job{
  desc:=strings.TrimSpace(strings.Join([]string{p.DescriptionPlain,p.AdditionalPlain}," "))
  lower:=strings.ToLower(p.Categories.Location+" "+desc);workplace:=""
- switch{case strings.Contains(lower,"hybrid"):workplace="Hybrid";case strings.Contains(lower,"remote"):workplace="Remote";case strings.Contains(lower,"onsite"),strings.Contains(lower,"on-site"),strings.Contains(lower,"on site"):workplace="Onsite"}
+ switch strings.ToLower(strings.TrimSpace(p.WorkplaceType)) { case "remote": workplace="Remote"; case "hybrid": workplace="Hybrid"; case "on-site","onsite": workplace="Onsite" }
+ if workplace=="" { switch{case strings.Contains(lower,"hybrid"):workplace="Hybrid";case strings.Contains(lower,"remote"):workplace="Remote";case strings.Contains(lower,"onsite"),strings.Contains(lower,"on-site"),strings.Contains(lower,"on site"):workplace="Onsite"} }
  return domain.Job{ID:"lever:"+site+":"+p.ID,Source:"lever",Title:p.Text,Company:site,URL:p.HostedURL,ApplyURL:p.ApplyURL,Location:p.Categories.Location,WorkplaceType:workplace,EmploymentType:p.Categories.Commitment,Description:desc,Requirements:p.Categories.Team,PostedAt:unixTime(p.CreatedAt),UpdatedAt:unixTime(p.UpdatedAt)}
 }
 func unixTime(ms int64)string{if ms<=0{return ""};return time.Unix(0,ms*int64(time.Millisecond)).UTC().Format(time.RFC3339)}
