@@ -3,6 +3,7 @@ package himalayas
 import (
 	"context"
 	"encoding/json"
+	"bytes"
 	"fmt"
 	"html"
 	"io"
@@ -25,6 +26,19 @@ func (c *Client) Name() string { return "himalayas" }
 
 type response struct { Jobs []job `json:"jobs"` }
 type restriction struct { Name string `json:"name"`; Alpha2 string `json:"alpha2"` }
+
+func (r *restriction) UnmarshalJSON(data []byte) error {
+	data = bytes.TrimSpace(data)
+	if len(data) == 0 || bytes.Equal(data, []byte("null")) { return nil }
+	if data[0] == '"' {
+		return json.Unmarshal(data, &r.Name)
+	}
+	type alias restriction
+	var v alias
+	if err := json.Unmarshal(data, &v); err != nil { return err }
+	*r = restriction(v)
+	return nil
+}
 type job struct {
 	GUID string `json:"guid"`
 	Title string `json:"title"`
