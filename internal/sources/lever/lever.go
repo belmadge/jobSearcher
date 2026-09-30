@@ -14,7 +14,7 @@ import (
 
 const defaultBaseURL = "https://api.lever.co/v0/postings"
 type Client struct { HTTPClient *http.Client; BaseURL string }
-func NewClient() *Client { return &Client{HTTPClient:&http.Client{Timeout:20*time.Second},BaseURL:defaultBaseURL} }
+func NewClient() *Client { return &Client{HTTPClient:&http.Client{Timeout:45*time.Second},BaseURL:defaultBaseURL} }
 func (c *Client) Name() string { return "lever" }
 
 type posting struct {
