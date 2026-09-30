@@ -113,6 +113,7 @@ var irrelevantTitleTerms = []string{
 	"shopify", "salesforce developer", "wordpress developer", "magento", "drupal",
 	"red team", "red-team", "penetration tester", "penetration testing", "pentester", "cybersecurity", "cyber security", "security engineer",
 	"qa engineer", "quality assurance", "sdet", "test engineer", "data scientist",
+	"executivo de contas", "executiva de contas", "analista comercial", "analista de contas", "analista de operacoes", "analista de operações", "supervisor de operacoes", "supervisor de operações", "especialista de planejamento", "planejamento e performance", "marketplace", "farmer", "closing",
 	"machine learning engineer", "ml engineer", "data engineer", "data analyst", "ux ", "ui ",
 }
 
@@ -120,6 +121,14 @@ func IsRelevant(j domain.Job) bool {
 	title := strings.ToLower(strings.TrimSpace(j.Title))
 	for _, term := range irrelevantTitleTerms {
 		if strings.Contains(title, term) { return false }
+	}
+	// Common Brazilian non-engineering titles should not reach location review just because
+	// their descriptions mention generic business/technology terms.
+	if strings.Contains(title, "analista") || strings.Contains(title, "supervisor") || strings.Contains(title, "especialista") {
+		technicalTitleSignals := []string{"sistemas", "software", "desenvolvedor", "desenvolvedora", "backend", "api", "dados", "data", "cloud", "infraestrutura", "infrastructure", "devops", "engenheiro", "engenheira", "programador", "programadora"}
+		technical := false
+		for _, signal := range technicalTitleSignals { if strings.Contains(title, signal) { technical = true; break } }
+		if !technical { return false }
 	}
 	// Explicit engineering targets are relevant even when the posting uses generic
 	// terminology in the description. Compatibility is decided later by Score.
