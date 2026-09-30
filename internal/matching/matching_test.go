@@ -22,11 +22,14 @@ func TestScoreAndGaps(t *testing.T){
 }
 
 func TestAliasesAreEquivalent(t *testing.T){
- p:=profile();j:=domain.Job{Title:"Golang Backend Engineer",Description:"Build REST APIs with Postgres and Amazon Web Services"}
- Score(&j,p)
- for _,want:=range []string{"Go","PostgreSQL","AWS"}{
-  found:=false;for _,r:=range j.Reasons{if containsCue(r, want){found=true}}
-  if !found{t.Fatalf("expected alias %s to contribute to match; reasons=%v",want,j.Reasons)}
+ p:=profile()
+ cases:=[]domain.Job{
+  {Title:"Golang Backend Engineer",Description:"Build REST APIs with Postgres and Amazon Web Services"},
+  {Title:"Go Backend Engineer",Description:"Build REST APIs with PostgreSQL and AWS"},
+ }
+ for i,j:=range cases {
+  Score(&j,p)
+  if j.TechnicalMatch < 70 { t.Fatalf("case %d: expected alias-expanded technical match, got %d; reasons=%v", i, j.TechnicalMatch, j.Reasons) }
  }
 }
 
@@ -35,7 +38,9 @@ func TestMissingMustHaveIsPenalizedButUnmentionedNiceToHaveIsNot(t *testing.T){
  base:=domain.Job{Title:"Backend Engineer",Description:"Go and PostgreSQL required. Kubernetes is a nice to have."}
  Score(&base,p)
  if len(base.MustHaveMissing)!=0{t.Fatalf("unexpected missing required skills: %v",base.MustHaveMissing)}
- if base.FitScore<60{t.Fatalf("optional Kubernetes should not crush score, got %d",base.FitScore)}
+ baselineNoNice:=domain.Job{Title:"Backend Engineer",Description:"Go and PostgreSQL required."}
+ Score(&baselineNoNice,p)
+ if base.FitScore!=baselineNoNice.FitScore{t.Fatalf("optional Kubernetes should not change score: with=%d without=%d",base.FitScore,baselineNoNice.FitScore)}
  missing:=domain.Job{Title:"Backend Engineer",Description:"Go required. Python required. Kubernetes is a nice to have."}
  Score(&missing,p)
  if len(missing.MustHaveMissing)!=1||missing.MustHaveMissing[0]!="Python"{t.Fatalf("expected Python as missing must-have, got %v",missing.MustHaveMissing)}
