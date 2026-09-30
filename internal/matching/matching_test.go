@@ -161,3 +161,14 @@ func TestSpecializedSecurityRolesAreRejected(t *testing.T) {
 		}
 	}
 }
+
+
+func TestUnmentionedCategoriesAreNeutral(t *testing.T) {
+	p := profile()
+	j := domain.Job{Title: "Software Engineer I", Description: "Backend APIs with Go, PostgreSQL and AWS"}
+	Score(&j, p)
+	if j.DomainMatch != 50 { t.Fatalf("unmentioned domain should be neutral: %d", j.DomainMatch) }
+	if j.LanguageMatch != 50 { t.Fatalf("unmentioned language should be neutral: %d", j.LanguageMatch) }
+	if j.AIMatch != 50 { t.Fatalf("unmentioned AI should be neutral: %d", j.AIMatch) }
+	if j.FitScore < 60 { t.Fatalf("compatible backend role should not be pushed below threshold by missing categories: %d", j.FitScore) }
+}
