@@ -17,14 +17,14 @@ func TestClassifyLocation(t *testing.T) {
 		{"onsite SP", "Onsite", "S\u00e3o Paulo, Brazil", "", "rejected_location"},
 		{"hybrid Maceio", "Hybrid", "Maceio, Alagoas", "", "approved"},
 		{"hybrid Recife", "Hybrid", "Recife, Brazil", "", "rejected_location"},
-		{"ambiguous remote", "Remote", "Remote", "", "uncertain_location"},
+		{"remote without geographic scope", "Remote", "Remote", "", "approved"},
 		{"unknown", "", "Somewhere", "", "uncertain_location"},
 		{"Maceio but workplace type missing", "", "Maceio, Brazil", "", "uncertain_location"},
 		{"onsite Maceio stated in description", "", "Maceio, Brazil", "This is an on-site role", "approved"},
 		{"remote Brazil only from description", "Remote", "Remote", "Remote - Brazil only", "approved"},
 		{"US residence restriction in description", "Remote", "Remote - LATAM", "Must be located in the United States", "rejected_location"},
 		{"LATAM residence in description", "Remote", "Remote", "Candidates must reside in LATAM", "approved"},
-		{"timezone only is ambiguous", "Remote", "Remote", "Remote within CET timezone", "uncertain_location"},
+		{"timezone-only remote", "Remote", "Remote", "Remote within CET timezone", "approved"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -33,5 +33,13 @@ func TestClassifyLocation(t *testing.T) {
 				t.Fatalf("got %q want %q", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestRemoteCloudDoesNotBecomeHybrid(t *testing.T) {
+	j := domain.Job{WorkplaceType: "Remote", Location: "Brazil", Description: "Work with hybrid cloud infrastructure and remote teams."}
+	got, _ := ClassifyLocation(j)
+	if got != "approved" {
+		t.Fatalf("expected remote cloud role to remain eligible, got %q", got)
 	}
 }
