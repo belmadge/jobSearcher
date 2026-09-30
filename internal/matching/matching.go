@@ -111,10 +111,10 @@ var irrelevantTitleTerms = []string{
 	"copywriter", "writer", "technician", "surveyor", "data entry", "office assistant",
 	"frontend", "front-end", "front end", "mobile", "ios", "android", "react native",
 	"shopify", "salesforce developer", "wordpress developer", "magento", "drupal",
-	"red team", "red-team", "penetration tester", "penetration testing", "pentester", "cybersecurity", "cyber security", "security engineer",
+	"red team", "red-team", "penetration tester", "penetration testing", "pentester", "cybersecurity", "cyber security", "security engineer", "security specialist", "security analyst", "head of security", "iam engineer",
 	"qa engineer", "quality assurance", "sdet", "test engineer", "data scientist",
 	"executivo de contas", "executiva de contas", "analista comercial", "analista de contas", "analista de operacoes", "analista de operações", "supervisor de operacoes", "supervisor de operações", "especialista de planejamento", "planejamento e performance", "marketplace", "farmer", "closing",
-	"machine learning engineer", "ml engineer", "data engineer", "data analyst", "ux ", "ui ",
+	"machine learning engineer", "ml engineer", "data engineer", "data analyst", "java developer", "java engineer", "ux ", "ui ",
 }
 
 func IsRelevant(j domain.Job) bool {
@@ -243,19 +243,7 @@ func inferSeniority(j domain.Job) (int, string) {
 		return 85, "Mid-level title; compatible with the target range"
 	}
 
-	for _, years := range requiredYears(text) {
-		switch {
-		case years <= 2:
-			return 92, fmt.Sprintf("Description asks for %d+ years; consistent with Engineer I", years)
-		case years <= 4:
-			return 80, fmt.Sprintf("Description asks for %d+ years; consistent with Engineer II/early mid-level", years)
-		case years <= 5:
-			return 68, fmt.Sprintf("Description asks for %d+ years; seniority is above the primary I target", years)
-		default:
-			return 55, fmt.Sprintf("Description asks for %d+ years; treated as senior-level scope", years)
-		}
-	}
-	if strings.Contains(level, "software engineer") || strings.Contains(level, "software developer") {
+	// Years-of-experience requirements are used for experience-gap scoring, not to\n\t// invent a seniority level. A posting asking for 1-2 years can still be a\n\t// generic Software Engineer role, and should not be relabeled as Engineer I.\n\tif strings.Contains(level, "software engineer") || strings.Contains(level, "software developer") {
 		return 85, "Generic Software Engineer title; backend-compatible and no higher level stated"
 	}
 	return 60, "Seniority not explicit"
