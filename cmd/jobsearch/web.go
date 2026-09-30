@@ -29,8 +29,7 @@ body{font-family:system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0
 <label>Skills</label><input name="skills" placeholder="Go, AWS, PostgreSQL, Docker" value="{{.Skills}}">
 <label>Senioridade</label><select name="seniority"><option value="junior" {{if eq .Seniority "junior"}}selected{{end}}>Júnior</option><option value="mid" {{if eq .Seniority "mid"}}selected{{end}}>Pleno</option><option value="senior" {{if eq .Seniority "senior"}}selected{{end}}>Sênior</option><option value="staff" {{if eq .Seniority "staff"}}selected{{end}}>Staff / Lead</option></select>
 <label>Anos de experiência</label><input type="number" min="0" name="experience" value="{{.Experience}}">
-<label>Localização</label><input name="location" placeholder="Brasil, São Paulo, Maceió..." value="{{.Location}}">
-<label>Modelo de trabalho</label><div class="checks"><label><input type="checkbox" name="remote" checked> Remoto</label><label><input type="checkbox" name="hybrid" checked> Híbrido</label><label><input type="checkbox" name="onsite"> Presencial</label></div>
+<p class="muted">🌎 Busca global — somente vagas 100% remotas.</p>
 <button type="submit">🔎 Buscar vagas</button></form></div>
 {{if .Searched}}<div class="card"><h2>Resultados</h2><p class="muted">{{.Count}} vagas elegíveis encontradas.</p>{{range .Jobs}}<div class="job"><div class="score">{{.FitScore}}% — {{.Title}}</div><strong>{{.Company}}</strong><div class="muted">{{.Location}} · {{.WorkplaceType}} · {{.Seniority}}</div><div class="skills">✓ {{join .MustHaveMatch}} {{if .MustHaveMissing}} · △ {{join .MustHaveMissing}}{{end}}</div><div class="skills"><span class="pill">{{.Source}}</span><span class="pill">{{.RecommendationStatus}}</span></div><p><a href="{{.URL}}" target="_blank" rel="noopener">Ver vaga →</a></p></div>{{else}}<p>Nenhuma vaga encontrada com esses critérios.</p>{{end}}</div>{{end}}
 </body></html>`
