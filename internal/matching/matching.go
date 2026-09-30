@@ -124,7 +124,20 @@ func IsRelevant(j domain.Job) bool {
 	// Explicit engineering targets are relevant even when the posting uses generic
 	// terminology in the description. Compatibility is decided later by Score.
 	for _, term := range relevantTitleTerms {
-		if strings.Contains(title, term) { return true }
+		if !strings.Contains(title, term) { continue }
+		// Generic Software Engineer/Developer is only relevant when the posting
+		// contains a backend/platform signal. Explicit I/II targets are accepted.
+		if term == "software engineer" || term == "software developer" {
+			if strings.Contains(title, "software engineer i") || strings.Contains(title, "software engineer ii") || strings.Contains(title, "software engineer 1") || strings.Contains(title, "software engineer 2") {
+				return true
+			}
+			all := strings.ToLower(strings.Join([]string{j.Title, j.Description, j.Requirements}, " "))
+			for _, signal := range []string{"backend", "back-end", "api", "service", "services", "microservice", "distributed systems", "platform", "cloud", "infrastructure", "integration", "go", "golang", "postgresql", "rest", "grpc", "message queue"} {
+				if strings.Contains(all, signal) { return true }
+			}
+			return false
+		}
+		return true
 	}
 	// For generic "Engineer/Developer" titles, require a backend/platform signal
 	// to avoid admitting unrelated engineering disciplines.
