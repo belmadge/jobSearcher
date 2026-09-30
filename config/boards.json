@@ -1,4 +1,13 @@
 {
-  "greenhouse": [],
-  "lever": []
+  "greenhouse": [
+    {"token":"ifood","company":"iFood","enabled":true},
+    {"token":"ebanx","company":"EBANX","enabled":true},
+    {"token":"nubank","company":"Nubank","enabled":true},
+    {"token":"vtex","company":"VTEX","enabled":true},
+    {"token":"quintoandar","company":"QuintoAndar","enabled":true}
+  ],
+  "lever": [
+    {"site":"cloudwalk","company":"CloudWalk","enabled":true},
+    {"site":"jobgether","company":"Jobgether","enabled":true}
+  ]
 }
