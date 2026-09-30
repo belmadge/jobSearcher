@@ -93,7 +93,7 @@ func TestExperienceRequirements(t *testing.T) {
 	p := profile()
 	ok := domain.Job{Title: "Software Engineer II", Description: "Go required. 3+ years of Go experience. 5+ years of software engineering experience."}
 	Score(&ok, p)
-	if ok.SeniorityMatch != 85 { t.Fatalf("Software Engineer II should be compatible: %d", ok.SeniorityMatch) }
+	if ok.SeniorityMatch != 78 { t.Fatalf("Software Engineer II should be secondary target: %d", ok.SeniorityMatch) }
 	if len(ok.MustHaveMissing) != 0 { t.Fatalf("expected no experience gaps: %v", ok.MustHaveMissing) }
 
 	gap := domain.Job{Title: "Senior Go Engineer", Description: "Go required. 5+ years of Go experience. 7+ years of software engineering experience."}
@@ -107,7 +107,7 @@ func TestEngineerLevelPreference(t *testing.T) {
 	p := profile()
 	i := domain.Job{Title: "Software Engineer I", Description: "Backend APIs with Go"}
 	Score(&i, p)
-	if i.SeniorityMatch != 95 { t.Fatalf("Engineer I should be primary target: %d", i.SeniorityMatch) }
+	if i.SeniorityMatch != 95 || !strings.Contains(i.SeniorityReason, "primary target") { t.Fatalf("Engineer I should be primary target: %d (%s)", i.SeniorityMatch, i.SeniorityReason) }
 
 	second := domain.Job{Title: "Software Engineer II", Description: "Backend APIs with Go"}
 	Score(&second, p)
