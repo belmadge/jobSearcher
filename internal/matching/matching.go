@@ -176,6 +176,9 @@ func Score(j *domain.Job, p config.Profile) {
 	}
 	if len(j.MustHaveMissing) > 0 {
 		j.TechnicalMatch = clamp(j.TechnicalMatch-len(j.MustHaveMissing)*10, 0, 100)
+		j.FitScore = clamp((j.TechnicalMatch*w.Technical+j.ResponsibilityMatch*w.Responsibility+j.SeniorityMatch*w.Seniority+j.CloudMatch*w.Cloud+j.DomainMatch*w.Domain+j.LanguageMatch*w.Language+j.AIMatch*w.AI)/100, 0, 100)
+		if j.SeniorityMatch <= 10 && j.FitScore > 59 { j.FitScore = 59 }
+		if j.SeniorityMatch == 55 && j.FitScore > 74 { j.FitScore = 74 }
 	}
 	j.Gaps = append([]string(nil), j.MustHaveMissing...)
 	if len(matched) > 0 { j.Reasons = append(j.Reasons, "Profile technology overlap: "+strings.Join(matched, ", ")) }
