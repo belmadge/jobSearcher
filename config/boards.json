@@ -1,6 +1,6 @@
 {
   "greenhouse": [
-    {"token":"ifood","company":"iFood","enabled":true},
+    {"token":"ifoodcarreiras","company":"iFood","enabled":true},
     {"token":"ebanx","company":"EBANX","enabled":true},
     {"token":"nubank","company":"Nubank","enabled":true},
     {"token":"vtex","company":"VTEX","enabled":true},
