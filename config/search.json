@@ -1,8 +1,8 @@
 {
-  "location": "Brazil",
-  "remote_allowed": ["Brazil", "LATAM", "South America", "Worldwide", "Americas"],
+  "location": "",
+  "remote_allowed": ["Worldwide"],
   "preferred_titles": ["Backend Developer", "Backend Engineer", "Software Engineer"],
-  "minimum_fit_score": 60,
+  "minimum_fit_score": 55,
   "freshness_days": 7,
   "archive_days": 30,
   "max_jobs_per_source": 100
