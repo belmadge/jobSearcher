@@ -9,7 +9,7 @@ import (
 	"jobsearcher/internal/sources"
 )
 
-func TestFetchJobs(t *testing.T) {
+func TestFetchJobs(t *testing.T) {`
 	page := `{"jobs":[{"guid":"1","title":"Backend Engineer","companyName":"Acme","employmentType":"Full Time","seniority":["Mid-level"],"locationRestrictions":[{"name":"Brazil","alpha2":"BR"}],"description":"<p>Go APIs and PostgreSQL</p>","pubDate":1720000000000,"applicationLink":"https://example.com/job"},{"guid":"2","title":"Software Engineer","companyName":"Beta","locationRestrictions":["Brazil"],"description":"Go backend","applicationLink":"https://example.com/job2"}]}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
