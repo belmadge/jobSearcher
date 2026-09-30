@@ -31,3 +31,13 @@ func TestIsFreshKeepsUnknownDates(t *testing.T) {
 		t.Fatal("jobs without parseable dates should not be discarded")
 	}
 }
+
+func TestIsFreshUsesNewestOfUpdatedAndPostedDates(t *testing.T) {
+	job := domain.Job{
+		UpdatedAt: time.Now().Add(-10 * 24 * time.Hour).Format(time.RFC3339),
+		PostedAt:  time.Now().Add(-2 * 24 * time.Hour).Format(time.RFC3339),
+	}
+	if !isFresh(job, 7) {
+		t.Fatal("expected recent posted date to keep the job fresh")
+	}
+}
