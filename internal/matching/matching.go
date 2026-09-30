@@ -89,7 +89,6 @@ func requiredTechnologyYears(text string) map[string]int {
 		if len(match) < 3 { continue }
 		var years int
 		fmt.Sscanf(match[1], "%d", &years)
-		if len(match) > 3 && match[2] != "" { var maxYears int; fmt.Sscanf(match[2], "%d", &maxYears) }
 		if len(match) > 3 && match[2] != "" { var maxYears int; fmt.Sscanf(match[2], "%d", &maxYears); if maxYears > years { years = maxYears } }
 		tech := canonical(match[3])
 		if years > out[tech] { out[tech] = years }
@@ -171,7 +170,7 @@ func matchesRequestedRole(j domain.Job, requestedRoles []string) bool {
 		words := strings.Fields(role)
 		matched := 0
 		for _, word := range words {
-			if word == "developer" || word == "developer" { if strings.Contains(title, "developer") || strings.Contains(title, "engineer") { matched++; continue } }
+			if word == "developer" { if strings.Contains(title, "developer") || strings.Contains(title, "engineer") { matched++; continue } }
 			if word == "engineer" && (strings.Contains(title, "engineer") || strings.Contains(title, "developer")) { matched++; continue }
 			if strings.Contains(title, word) { matched++ }
 		}
