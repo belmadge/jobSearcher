@@ -20,16 +20,11 @@ jobs:
           go-version: "1.24"
       - name: Test
         run: go test ./...
-      - name: Run Greenhouse
-        if: ${{ secrets.GREENHOUSE_BOARD_TOKENS != '' }}
+      - name: Run daily search
         env:
           GREENHOUSE_BOARD_TOKENS: ${{ secrets.GREENHOUSE_BOARD_TOKENS }}
-        run: go run ./cmd/jobsearch run --source=greenhouse
-      - name: Run Lever
-        if: ${{ secrets.LEVER_SITES != '' }}
-        env:
           LEVER_SITES: ${{ secrets.LEVER_SITES }}
-        run: go run ./cmd/jobsearch run --source=lever
+        run: go run ./cmd/jobsearch run
       - name: Commit reports
         run: |
           if git diff --quiet -- reports data; then
