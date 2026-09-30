@@ -18,7 +18,7 @@ func Markdown(jobs []domain.Job, uncertain []domain.Job, rejected, found int, ge
    if (section.min==0 && j.FitScore>=60) || (section.min>0 && j.FitScore<section.min) || (section.min==80 && j.FitScore<80){continue}
    if section.min==60 && j.FitScore>=80{continue}
    count++
-   fmt.Fprintf(&b,"### %s — %s\n\n**Score:** %d/100  \n**Local:** %s  \n**Modelo:** %s  \n**Senioridade:** %s\n\n**Por que combina:** %s\n\n**Gaps:** %s\n\n**Salário:** %s  \n**Publicado:** %s  \n**Link:** %s\n\n",j.Title,j.Company,j.FitScore,j.Location,j.WorkplaceType,j.Seniority,strings.Join(j.Reasons,"; "),strings.Join(j.Gaps,", "),j.Salary,j.PostedAt,j.URL)
+   fmt.Fprintf(&b,"### %s — %s\n\n**Score:** %d/100  \n**Fonte:** %s  \n**Local:** %s  \n**Modelo:** %s  \n**Senioridade:** %s\n\n**Por que combina:** %s\n\n**Gaps:** %s\n\n**Salário:** %s  \n**Publicado:** %s  \n**Link:** %s\n\n",j.Title,j.Company,j.FitScore,j.Source,j.Location,j.WorkplaceType,j.Seniority,strings.Join(j.Reasons,"; "),strings.Join(j.Gaps,", "),j.Salary,j.PostedAt,j.URL)
   }
   if count==0{b.WriteString("Nenhuma vaga nesta faixa.\n\n")}
  }
