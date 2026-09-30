@@ -11,5 +11,7 @@
   "emerging_skills": ["AI Agents", "AI Skills"],
   "languages": ["English", "IELTS"],
   "certifications": ["Go Expert - Full Cycle - May 2024"],
+  "years_experience": 5,
+  "technology_years": {"Go": 3},
   "weights": {"technical":35, "responsibility":20, "seniority":15, "cloud":10, "domain":10, "language":5, "ai":5}
 }
