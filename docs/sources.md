@@ -31,3 +31,15 @@ All providers implement `sources.JobSource` and return normalized `domain.Job` v
 A source may return successful jobs together with an error when only some configured boards/sites fail. The CLI keeps successful results and reports the source warning.
 
 No source is allowed to submit applications or contact recruiters.
+
+## Remote OK
+
+The project also supports Remote OK's public JSON feed for broad remote-job discovery.
+
+- Endpoint: https://remoteok.com/api
+- No authentication is required for the public feed.
+- Jobs are normalized as remote candidates and still pass the project's location and profile matching rules.
+- Reports preserve the original job URL and identify Remote OK as the source.
+- The feed's terms require attribution and a link back to Remote OK; JobSearcher does not republish job descriptions publicly beyond its local report.
+
+Public API: https://remoteok.com/api
