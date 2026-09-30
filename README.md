@@ -68,6 +68,8 @@ go run ./cmd/jobsearch run --source=greenhouse
 go run ./cmd/jobsearch run --source=lever
 go run ./cmd/jobsearch run --source=remoteok
 go run ./cmd/jobsearch run --source=remotive
+go run ./cmd/jobsearch run --source=programathor
+go run ./cmd/jobsearch run --source=himalayas
 ```
 
 Para executar todas as fontes:
@@ -141,3 +143,27 @@ Cada vaga pode apresentar título, empresa, localização, modelo de trabalho, s
 ## Importante
 
 O JobSearcher é uma ferramenta de pesquisa e triagem. Ele **não se candidata automaticamente às vagas** e **não envia mensagens para recrutadores**.
+
+
+## Fontes de vagas
+
+Atualmente o JobSearcher usa fontes com endpoints públicos ou APIs documentadas:
+
+- Greenhouse — boards públicos de empresas configuradas.
+- Lever — postings públicos de empresas configuradas.
+- Remote OK — feed público remoto.
+- Remotive — API pública de vagas remotas.
+- Programathor — página pública brasileira de vagas de programação.
+- Himalayas — API pública de vagas remotas, sem autenticação.
+
+A busca não faz candidatura automática.
+
+### Fontes avaliadas, mas não acopladas diretamente
+
+**LinkedIn:** as páginas de vagas podem ser públicas, mas não foi encontrada uma API pública oficial de busca de vagas adequada para esta automação. Por isso, o projeto não depende de scraping direto do LinkedIn.
+
+**Gupy:** possui API pública documentada para consulta de vagas, porém o fluxo documentado para consumir as vagas exige um Bearer Token gerado pela plataforma. Não vou exigir uma credencial de empresa/recrutador apenas para pesquisar vagas.
+
+**Indeed:** a plataforma possui APIs e regras específicas de integração; não será usada como scraper de HTML.
+
+O objetivo é ampliar a cobertura sem transformar o JobSearcher em um robô frágil ou dependente de credenciais de terceiros.
