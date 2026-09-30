@@ -1,79 +1,13 @@
 {
-  "titles": [
-    "Software Engineer I",
-    "Software Engineer",
-    "Software Engineer II",
-    "Backend Developer",
-    "Backend Engineer",
-    "Go Developer",
-    "Golang Developer",
-    "API Developer",
-    "Platform Engineer"
-  ],
-  "technologies": [
-    "Go",
-    "Golang",
-    "PostgreSQL",
-    "SQL",
-    "AWS",
-    "RabbitMQ",
-    "GraphQL",
-    "Docker",
-    "Kubernetes",
-    "Terraform",
-    "CI/CD",
-    "Datadog",
-    "Observability",
-    "Automated Testing",
-    "APIs",
-    "Backend Services",
-    "Data Migrations"
-  ],
-  "experience": [
-    {
-      "company": "Dock",
-      "title": "Junior Backend Developer",
-      "period": "2024-present"
-    },
-    {
-      "company": "Levee",
-      "title": "Junior Software Engineer",
-      "period": "2021-10/2024-04"
-    },
-    {
-      "company": "Simge",
-      "title": "Fullstack Intern",
-      "period": "2020-12/2021-10"
-    },
-    {
-      "company": "Previous role",
-      "title": "Backend Developer",
-      "period": "Earlier"
-    }
-  ],
-  "domains": [
-    "fintech",
-    "production systems",
-    "APIs",
-    "observability",
-    "troubleshooting",
-    "cloud infrastructure"
-  ],
-  "emerging_skills": [
-    "AI Agents",
-    "AI Skills"
-  ],
-  "languages": [
-    "English",
-    "IELTS"
-  ],
-  "certifications": [
-    "Go Expert - Full Cycle - May 2024"
-  ],
-  "years_experience": 5,
-  "technology_years": {
-    "Go": 3
-  },
+  "titles": ["Backend Developer", "Backend Engineer", "Software Engineer"],
+  "technologies": ["Go", "PostgreSQL", "AWS", "Docker"],
+  "experience": [],
+  "domains": [],
+  "emerging_skills": [],
+  "languages": [],
+  "certifications": [],
+  "years_experience": 3,
+  "technology_years": {},
   "weights": {
     "technical": 35,
     "responsibility": 15,
