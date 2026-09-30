@@ -2,6 +2,22 @@
 
 Automação para buscar vagas de tecnologia compatíveis com o perfil configurado, buscando exclusivamente vagas de tecnologia com trabalho 100% remoto, em qualquer país ou região.
 
+## Interface web
+
+A primeira versão do JobSearcher também pode ser usada por uma interface local, sem upload de currículo e sem login.
+
+```bash
+go run ./cmd/jobsearch web
+```
+
+Depois abra `http://localhost:8080`.
+
+A configuração é feita durante a sessão: cargo/área desejada; skills; senioridade e anos de experiência. A busca é sempre global e exclusivamente remota.
+
+O perfil informado no formulário é mantido apenas em memória durante a busca. O JobSearcher não precisa armazenar currículo, nome, telefone, e-mail ou outros dados pessoais para realizar o matching.
+
+O formulário usa o mesmo pipeline existente de fontes, filtros de trabalho remoto, senioridade, matching, score e deduplicação do CLI. A aplicação continua apenas encontrando e apresentando vagas; não envia candidaturas nem mensagens para recrutadores.
+
 ## Como usar
 
 ### 1. Pré-requisitos
