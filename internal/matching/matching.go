@@ -103,7 +103,7 @@ func profileTechnologyYears(p config.Profile, technology string) int {
 
 func clamp(v, low, high int) int { if v < low { return low }; if v > high { return high }; return v }
 
-var relevantTitleTerms = []string{"backend", "software engineer", "software developer", "go developer", "golang", "api engineer", "platform engineer", "cloud engineer", "distributed systems", "integration engineer"}
+var relevantTitleTerms = []string{"backend", "software engineer", "software developer", "go developer", "golang", "api engineer", "platform engineer", "platform developer", "cloud engineer", "cloud infrastructure", "infrastructure engineer", "site reliability engineer", "sre", "reliability engineer", "distributed systems", "integration engineer", "integration developer"}
 var irrelevantTitleTerms = []string{
 	"product manager", "product lead", "product designer", "designer", "sales", "marketing",
 	"recruiter", "human resources", "hr ", "payroll", "customer support", "support specialist",
@@ -158,6 +158,7 @@ func Score(j *domain.Job, p config.Profile) {
 	j.LanguageMatch = termCoverage(all, []string{"english"})
 	j.AIMatch = termCoverage(all, p.EmergingSkills)
 	j.SeniorityMatch, j.SeniorityReason = inferSeniority(*j)
+	j.Seniority = seniorityLabel(j.SeniorityMatch, j.SeniorityReason)
 
 	w := p.Weights
 	j.FitScore = clamp((j.TechnicalMatch*w.Technical+j.ResponsibilityMatch*w.Responsibility+j.SeniorityMatch*w.Seniority+j.CloudMatch*w.Cloud+j.DomainMatch*w.Domain+j.LanguageMatch*w.Language+j.AIMatch*w.AI)/100, 0, 100)
@@ -228,6 +229,26 @@ func inferSeniority(j domain.Job) (int, string) {
 		return 85, "Generic Software Engineer title; backend-compatible and no higher level stated"
 	}
 	return 60, "Seniority not explicit"
+}
+
+func seniorityLabel(score int, reason string) string {
+	lower := strings.ToLower(reason)
+	switch {
+	case strings.Contains(lower, "engineer i level") || strings.Contains(lower, "engineer i"):
+		return "Engineer I"
+	case strings.Contains(lower, "engineer ii level") || strings.Contains(lower, "engineer ii"):
+		return "Engineer II"
+	case strings.Contains(lower, "senior-level"), strings.Contains(lower, "senior-level title"):
+		return "Senior"
+	case strings.Contains(lower, "leadership/staff-level"):
+		return "Staff/Lead"
+	case score >= 90:
+		return "Junior/Associate"
+	case score >= 80:
+		return "Mid-level"
+	default:
+		return "Not explicit"
+	}
 }
 
 func containsAny(text string, terms ...string) bool {
