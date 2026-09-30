@@ -104,7 +104,15 @@ func profileTechnologyYears(p config.Profile, technology string) int {
 func clamp(v, low, high int) int { if v < low { return low }; if v > high { return high }; return v }
 
 var relevantTitleTerms = []string{"backend", "software engineer", "software developer", "go developer", "golang", "api engineer", "platform engineer", "cloud engineer", "distributed systems", "integration engineer"}
-var irrelevantTitleTerms = []string{"product manager", "product lead", "product designer", "designer", "sales", "marketing", "recruiter", "human resources", "hr ", "payroll", "customer support", "support specialist", "business development", "account executive", "account manager", "finance manager", "legal", "copywriter", "writer", "technician", "surveyor", "data entry", "office assistant"}
+var irrelevantTitleTerms = []string{
+	"product manager", "product lead", "product designer", "designer", "sales", "marketing",
+	"recruiter", "human resources", "hr ", "payroll", "customer support", "support specialist",
+	"business development", "account executive", "account manager", "finance manager", "legal",
+	"copywriter", "writer", "technician", "surveyor", "data entry", "office assistant",
+	"frontend", "front-end", "front end", "mobile", "ios", "android", "react native",
+	"qa engineer", "quality assurance", "sdet", "test engineer", "data scientist",
+	"machine learning engineer", "ml engineer", "data engineer", "data analyst", "ux ", "ui ",
+}
 
 func IsRelevant(j domain.Job) bool {
 	title := strings.ToLower(strings.TrimSpace(j.Title))
@@ -112,10 +120,16 @@ func IsRelevant(j domain.Job) bool {
 		if strings.Contains(title, term) { return false }
 	}
 	for _, term := range relevantTitleTerms {
-		if strings.Contains(title, term) { return true }
+		if strings.Contains(title, term) {
+			if strings.Contains(term, "software engineer") || strings.Contains(term, "software developer") {
+			all := strings.ToLower(strings.Join([]string{j.Title, j.Description, j.Requirements}, " "))
+				return mentions(all, "Go") || mentions(all, "Golang") || mentions(all, "Backend") || mentions(all, "API") || mentions(all, "PostgreSQL")
+			}
+			return true
+		}
 	}
 	all := strings.ToLower(strings.Join([]string{j.Title, j.Description, j.Requirements}, " "))
-	return mentions(all, "Go") || mentions(all, "Golang") || mentions(all, "Backend")
+	return mentions(all, "Go") || mentions(all, "Golang") || mentions(all, "Backend") || mentions(all, "API")
 }
 
 // Score uses explicit required language for penalties. Missing optional or unmentioned profile skills do not reduce the score.
@@ -148,7 +162,9 @@ func Score(j *domain.Job, p config.Profile) {
 	case strings.Contains(level, "senior"):
 		j.SeniorityMatch = 55
 	case strings.Contains(level, "software engineer ii") || strings.Contains(level, "software engineer 2") || strings.Contains(level, "engineer ii") || strings.Contains(level, "engineer 2"):
-		j.SeniorityMatch = 85
+		j.SeniorityMatch = 78
+	case strings.Contains(level, "software engineer i") || strings.Contains(level, "software engineer 1") || strings.Contains(level, "engineer i") || strings.Contains(level, "engineer 1"):
+		j.SeniorityMatch = 95
 	case strings.Contains(level, "junior") || strings.Contains(level, "associate") || strings.Contains(level, "mid") || strings.Contains(level, "software engineer") || strings.Contains(level, "pleno"):
 		j.SeniorityMatch = 85
 	default:
