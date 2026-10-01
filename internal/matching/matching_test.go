@@ -301,3 +301,38 @@ func TestTargetSeniorityChangesPreference(t *testing.T) {
 		t.Fatalf("junior target should score senior role below target: %d", j.SeniorityMatch)
 	}
 }
+
+
+func TestRelatedTechnologyMatch(t *testing.T) {
+	p := profile()
+	p.Technologies = []string{"Docker", "PostgreSQL", "AWS"}
+	j := domain.Job{Title: "Backend Engineer", Description: "Build services with Kubernetes, MySQL and GCP"}
+	Score(&j, p)
+	if j.SkillMatch != 0 {
+		t.Fatalf("unmentioned exact skills should not receive exact credit: %d", j.SkillMatch)
+	}
+	if j.RelatedSkillMatch <= 0 {
+		t.Fatalf("related technologies should provide secondary credit: %d", j.RelatedSkillMatch)
+	}
+	if j.RelatedSkillMatch >= 100 {
+		t.Fatalf("related technologies should not equal full exact skill match: %d", j.RelatedSkillMatch)
+	}
+}
+
+func TestExactSkillRemainsStrongerThanRelated(t *testing.T) {
+	p := profile()
+	p.Technologies = []string{"Docker"}
+	exact := domain.Job{Title: "Backend Engineer", Description: "Docker"}
+	related := domain.Job{Title: "Backend Engineer", Description: "Kubernetes"}
+	Score(&exact, p)
+	Score(&related, p)
+	if exact.SkillMatch != 100 {
+		t.Fatalf("exact Docker match should be 100: %d", exact.SkillMatch)
+	}
+	if related.RelatedSkillMatch != 100 {
+		t.Fatalf("Kubernetes should be related to Docker: %d", related.RelatedSkillMatch)
+	}
+	if exact.TechnicalMatch <= related.TechnicalMatch {
+		t.Fatalf("exact technology should remain stronger: exact=%d related=%d", exact.TechnicalMatch, related.TechnicalMatch)
+	}
+}
