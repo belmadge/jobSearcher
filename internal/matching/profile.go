@@ -24,14 +24,14 @@ func BuildSearchProfile(p config.Profile) SearchProfile {
 }
 
 var roleAliases = map[string][]string{
-	"backend developer": {"backend developer","backend engineer","back end developer","back end engineer","back-end developer","back-end engineer","backend software engineer","api developer","api engineer","server-side developer"},
-	"backend engineer": {"backend developer","backend engineer","back end developer","back end engineer","back-end developer","back-end engineer","backend software engineer","api developer","api engineer","server-side developer"},
+	"backend developer": {"backend developer","backend engineer","back end developer","back end engineer","back-end developer","back-end engineer","backend software engineer","software engineer","software developer","api developer","api engineer","server-side developer","backend"},
+	"backend engineer": {"backend developer","backend engineer","back end developer","back end engineer","back-end developer","back-end engineer","backend software engineer","software engineer","software developer","api developer","api engineer","server-side developer","backend"},
 	"software engineer": {"software engineer","software developer","backend engineer","backend developer","api engineer","platform engineer"},
 	"software developer": {"software engineer","software developer","backend engineer","backend developer","api engineer","platform engineer"},
-	"qa": {"qa","qa engineer","quality assurance","quality assurance engineer","quality engineer","software qa","sdet","software development engineer in test","test automation engineer","automation qa","qa automation","test engineer"},
-	"quality assurance": {"qa","qa engineer","quality assurance","quality assurance engineer","quality engineer","software qa","sdet","software development engineer in test","test automation engineer","automation qa","qa automation","test engineer"},
-	"devops": {"devops engineer","devops developer","site reliability engineer","sre","platform engineer","infrastructure engineer"},
-	"sre": {"site reliability engineer","sre","reliability engineer","platform engineer","infrastructure engineer"},
+	"qa": {"qa","qa engineer","quality assurance","quality assurance engineer","quality engineer","software qa","sdet","software development engineer in test","test automation engineer","automation qa","qa automation","test engineer","test automation","quality engineer"},
+	"quality assurance": {"qa","qa engineer","quality assurance","quality assurance engineer","quality engineer","software qa","sdet","software development engineer in test","test automation engineer","automation qa","qa automation","test engineer","test automation"},
+	"devops": {"devops engineer","devops developer","site reliability engineer","sre","platform engineer","infrastructure engineer","devops","platform"},
+	"sre": {"site reliability engineer","sre","reliability engineer","platform engineer","infrastructure engineer","site reliability"},
 	"data engineer": {"data engineer","analytics engineer","data platform engineer"},
 }
 
