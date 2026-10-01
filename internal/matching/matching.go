@@ -118,11 +118,11 @@ var irrelevantTitleTerms = []string{
 }
 
 func IsRelevant(j domain.Job, requestedRoles ...string) bool {
+	title := strings.ToLower(strings.TrimSpace(j.Title))
+	for _, term := range irrelevantTitleTerms { if strings.Contains(title, term) { return false } }
 	if len(requestedRoles) > 0 {
 		return matchesRequestedRole(j, requestedRoles)
 	}
-	title := strings.ToLower(strings.TrimSpace(j.Title))
-	for _, term := range irrelevantTitleTerms { if strings.Contains(title, term) { return false } }
 	if strings.Contains(title, "analista") || strings.Contains(title, "supervisor") || strings.Contains(title, "especialista") {
 		technicalTitleSignals := []string{"sistemas", "software", "desenvolvedor", "desenvolvedora", "backend", "api", "dados", "data", "cloud", "infraestrutura", "infrastructure", "devops", "engenheiro", "engenheira", "programador", "programadora"}
 		technical := false
