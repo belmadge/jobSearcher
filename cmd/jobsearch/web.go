@@ -92,7 +92,11 @@ func searchForWeb(ctx context.Context,profile config.Profile,search config.Searc
  out=rankAndDedupeJobs(out)
  return limitJobsPerSource(out,search.MaxJobsPerSource),nil
 }
-func webJobEligible(j domain.Job, minimumFit int) bool {\n\treturn j.WorkplaceType == "remote" && j.LocationEligible == domain.LocationEligible && j.FitScore >= minimumFit && j.SeniorityMatch > 20\n}\n\nfunc csvValues(s string)[]string{out:=[]string{};for _,v:=range strings.Split(s,","){if v=strings.TrimSpace(v);v!=""{out=append(out,v)}};return out}
+func webJobEligible(j domain.Job, minimumFit int) bool {
+	return j.WorkplaceType == "remote" && j.LocationEligible == domain.LocationEligible && j.FitScore >= minimumFit && j.SeniorityMatch > 20
+}
+
+func csvValues(s string)[]string{out:=[]string{};for _,v:=range strings.Split(s,","){if v=strings.TrimSpace(v);v!=""{out=append(out,v)}};return out}
 
 func workModelAllowed(j domain.Job,remote,hybrid,onsite bool) bool { if !remote&&!hybrid&&!onsite{return true}; text:=strings.ToLower(j.WorkplaceType+" "+j.Location+" "+j.Description[:minLen(len(j.Description),500)]); ok:=false; if remote&&(strings.Contains(text,"remote")||strings.Contains(text,"remoto")){ok=true}; if hybrid&&(strings.Contains(text,"hybrid")||strings.Contains(text,"híbrido")||strings.Contains(text,"hibrido")){ok=true}; if onsite&&(strings.Contains(text,"onsite")||strings.Contains(text,"on-site")||strings.Contains(text,"presencial")){ok=true}; return ok }
 func minLen(a,b int) int {if a<b{return a};return b}
