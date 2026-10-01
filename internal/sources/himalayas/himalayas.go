@@ -65,6 +65,7 @@ func (c *Client) FetchJobs(ctx context.Context, q sources.Query) ([]domain.Job, 
 	if len(terms) == 0 { terms = []string{"software engineer", "backend engineer", "golang", "platform engineer"} }
 	seen := map[string]bool{}
 	out := make([]domain.Job, 0)
+	var errs []error
 	for _, term := range terms {
 		u, _ := url.Parse(c.URL)
 		params := u.Query()
@@ -73,17 +74,32 @@ func (c *Client) FetchJobs(ctx context.Context, q sources.Query) ([]domain.Job, 
 		params.Set("page", "1")
 		u.RawQuery = params.Encode()
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-		if err != nil { return out, err }
+		if err != nil {
+			errs = append(errs, fmt.Errorf("term %q: %w", term, err))
+			continue
+		}
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("User-Agent", "JobSearcher/1.0")
 		resp, err := c.HTTPClient.Do(req)
-		if err != nil { return out, err }
+		if err != nil {
+			errs = append(errs, fmt.Errorf("term %q: %w", term, err))
+			continue
+		}
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
 		resp.Body.Close()
-		if readErr != nil { return out, readErr }
-		if resp.StatusCode != http.StatusOK { return out, fmt.Errorf("himalayas: HTTP %d", resp.StatusCode) }
+		if readErr != nil {
+			errs = append(errs, fmt.Errorf("term %q: %w", term, readErr))
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			errs = append(errs, fmt.Errorf("term %q: HTTP %d", term, resp.StatusCode))
+			continue
+		}
 		var payload response
-		if err := json.Unmarshal(body, &payload); err != nil { return out, err }
+		if err := json.Unmarshal(body, &payload); err != nil {
+			errs = append(errs, fmt.Errorf("term %q: %w", term, err))
+			continue
+		}
 		for _, p := range payload.Jobs {
 			id := p.GUID
 			if id == "" { id = p.ApplicationLink + "|" + p.Title + "|" + p.CompanyName }
@@ -92,7 +108,7 @@ func (c *Client) FetchJobs(ctx context.Context, q sources.Query) ([]domain.Job, 
 			out = append(out, normalize(p))
 		}
 	}
-	return out, nil
+	return out, errors.Join(errs...)
 }
 
 func uniqueTerms(terms []string) []string {
