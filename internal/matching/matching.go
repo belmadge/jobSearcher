@@ -231,7 +231,11 @@ func ScoreForRoles(j *domain.Job, p config.Profile, requestedRoles []string) {
 	j.SkillMatch = skillMatch
 	baseTechnical := clamp(40+len(matched)*10-len(j.MustHaveMissing)*20, 0, 100)
 	if mentions(all, "Go") { baseTechnical = clamp(baseTechnical+5, 0, 100) }
-	j.TechnicalMatch = blendRoleAndSkills(roleMatch, skillMatch, baseTechnical)
+	if len(requestedRoles) == 0 {
+		j.TechnicalMatch = baseTechnical
+	} else {
+		j.TechnicalMatch = blendRoleAndSkills(roleMatch, skillMatch, baseTechnical)
+	}
 	respTerms := []string{"backend", "api", "service", "distributed systems", "integration"}
 	j.ResponsibilityMatch = categoryCoverage(all, respTerms)
 	cloudTerms := []string{"aws", "cloud", "kubernetes", "docker", "terraform", "infrastructure"}
