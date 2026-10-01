@@ -73,7 +73,7 @@ func mergeSourceResults(results ...sourceResult) ([]domain.Job, error) {
 	errs := []string{}
 	failed := 0
 	for _, result := range results {
-		all = append(all, result.jobs...)
+		all = append(all, sanitizeJobs(result.jobs)...)
 		if result.err != nil {
 			failed++
 			errs = append(errs, result.err.Error())
@@ -89,13 +89,13 @@ func mergeSourceResults(results ...sourceResult) ([]domain.Job, error) {
 }
 
 func fetchSources(ctx context.Context,name string,q sources.Query)([]domain.Job,error){
- if name=="mock"{return (sources.Mock{}).FetchJobs(ctx,q)}
- if name=="greenhouse"{if len(q.BoardTokens)==0{return nil,errors.New("no Greenhouse boards configured; add enabled boards to config/boards.json or set GREENHOUSE_BOARD_TOKENS")};return greenhouse.NewClient().FetchJobs(ctx,q)}
- if name=="lever"{if len(q.LeverSites)==0{return nil,errors.New("no Lever sites configured; add enabled sites to config/boards.json or set LEVER_SITES")};return lever.NewClient().FetchJobs(ctx,q)}
- if name=="remoteok"{return remoteok.NewClient().FetchJobs(ctx,q)}
- if name=="remotive"{return remotive.NewClient().FetchJobs(ctx,q)}
- if name=="programathor"{return programathor.NewClient().FetchJobs(ctx,q)}
- if name=="himalayas"{return himalayas.NewClient().FetchJobs(ctx,q)}
+ if name=="mock"{jobs,err:=(sources.Mock{}).FetchJobs(ctx,q);return sanitizeJobs(jobs),err}
+ if name=="greenhouse"{if len(q.BoardTokens)==0{return nil,errors.New("no Greenhouse boards configured; add enabled boards to config/boards.json or set GREENHOUSE_BOARD_TOKENS")};jobs,err:=greenhouse.NewClient().FetchJobs(ctx,q);return sanitizeJobs(jobs),err}
+ if name=="lever"{if len(q.LeverSites)==0{return nil,errors.New("no Lever sites configured; add enabled sites to config/boards.json or set LEVER_SITES")};jobs,err:=lever.NewClient().FetchJobs(ctx,q);return sanitizeJobs(jobs),err}
+ if name=="remoteok"{jobs,err:=remoteok.NewClient().FetchJobs(ctx,q);return sanitizeJobs(jobs),err}
+ if name=="remotive"{jobs,err:=remotive.NewClient().FetchJobs(ctx,q);return sanitizeJobs(jobs),err}
+ if name=="programathor"{jobs,err:=programathor.NewClient().FetchJobs(ctx,q);return sanitizeJobs(jobs),err}
+ if name=="himalayas"{jobs,err:=himalayas.NewClient().FetchJobs(ctx,q);return sanitizeJobs(jobs),err}
  if name!="all"{return nil,fmt.Errorf("unknown source %q",name)}
 
  results:=[]sourceResult{}
@@ -115,6 +115,40 @@ func fetchSources(ctx context.Context,name string,q sources.Query)([]domain.Job,
  jobs,err:=mergeSourceResults(results...)
  if err!=nil && len(jobs)>0{return jobs,err}
  return jobs,err
+}
+
+func sanitizeJobs(jobs []domain.Job) []domain.Job {
+	out := make([]domain.Job, 0, len(jobs))
+	seen := map[string]struct{}{}
+	for _, job := range jobs {
+		job.Source = strings.TrimSpace(job.Source)
+		job.Title = strings.TrimSpace(job.Title)
+		job.Company = strings.TrimSpace(job.Company)
+		job.URL = strings.TrimSpace(job.URL)
+		job.ApplyURL = strings.TrimSpace(job.ApplyURL)
+		if job.URL == "" {
+			job.URL = job.ApplyURL
+		}
+		if job.ApplyURL == "" {
+			job.ApplyURL = job.URL
+		}
+		if job.Source == "" || job.Title == "" || job.URL == "" {
+			continue
+		}
+		if job.CanonicalURL == "" {
+			job.CanonicalURL = dedupe.CanonicalURL(job.URL)
+		}
+		if job.ID == "" {
+			job.ID = job.Source + ":" + job.CanonicalURL
+		}
+		key := job.Source + "|" + job.ID
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, job)
+	}
+	return out
 }
 
 func splitEnv(key string)[]string{v:=strings.TrimSpace(os.Getenv(key));if v==""{return nil};return strings.Split(v,",")}
