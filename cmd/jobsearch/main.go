@@ -17,7 +17,7 @@ func runSearch(ctx context.Context,profile config.Profile,search config.Search,b
  for _,b:=range boards.Lever{if b.Enabled&&strings.TrimSpace(b.Site)!=""{sites=append(sites,b.Site)}}
  tokens=append(tokens,splitEnv("GREENHOUSE_BOARD_TOKENS")...);sites=append(sites,splitEnv("LEVER_SITES")...)
  tokens,sites=unique(tokens),unique(sites)
- profileSearch:=matching.BuildSearchProfile(profile); query:=sources.Query{Terms:append(append([]string{},profileSearch.ExpandedRoles...),profileSearch.ExpandedSkills...),Location:"",BoardTokens:tokens,LeverSites:sites}
+ profileSearch:=matching.BuildSearchProfile(profile); searchRoles:=profileSearch.ExpandedRoles; query:=sources.Query{Terms:append(append([]string{},searchRoles...),profileSearch.ExpandedSkills...),Location:"",BoardTokens:tokens,LeverSites:sites}
  jobs,err:=fetchSources(ctx,sourceName,query)
  found:=len(jobs)
  if err!=nil{fmt.Fprintln(os.Stderr,"source warning:",err)}
@@ -27,7 +27,7 @@ func runSearch(ctx context.Context,profile config.Profile,search config.Search,b
  archivedCandidates:=make([]domain.Job,0,len(jobs))
  for i:=range jobs{
   if !isWithinDays(jobs[i],search.ArchiveDays){stale++;continue}
-  if !matching.IsRelevant(jobs[i]) { irrelevant++; continue }
+  if !matching.IsRelevant(jobs[i], searchRoles...) { irrelevant++; continue }
   if isFresh(jobs[i],search.FreshnessDays) { freshCandidates=append(freshCandidates,jobs[i]) } else { archivedCandidates=append(archivedCandidates,jobs[i]) }
  }
  process:=func(candidates []domain.Job, old bool){
