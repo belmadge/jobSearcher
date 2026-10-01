@@ -153,7 +153,11 @@ func normalize(p job) domain.Job {
 		if p.PubDate < 1_000_000_000_000 { postedAt = time.Unix(p.PubDate, 0).UTC() } else { postedAt = time.UnixMilli(p.PubDate).UTC() }
 		posted = postedAt.Format(time.RFC3339)
 	}
-	return domain.Job{ID:"himalayas:"+p.GUID,Source:"himalayas",Title:p.Title,Company:p.CompanyName,URL:p.ApplicationLink,ApplyURL:p.ApplicationLink,CanonicalURL:p.ApplicationLink,Location:location,WorkplaceType:"Remote",EmploymentType:p.EmploymentType,Seniority:strings.Join(p.Seniority,", "),Description:desc,Salary:salary,PostedAt:posted}
+	id := p.GUID
+	if id == "" {
+		id = p.ApplicationLink + "|" + p.Title + "|" + p.CompanyName
+	}
+	return domain.Job{ID:"himalayas:"+id,Source:"himalayas",Title:p.Title,Company:p.CompanyName,URL:p.ApplicationLink,ApplyURL:p.ApplicationLink,CanonicalURL:p.ApplicationLink,Location:location,WorkplaceType:"Remote",EmploymentType:p.EmploymentType,Seniority:strings.Join(p.Seniority,", "),Description:desc,Salary:salary,PostedAt:posted}
 }
 
 func stripHTML(s string) string {
