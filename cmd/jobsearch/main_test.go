@@ -66,6 +66,8 @@ func TestLimitJobsPerSourceDoesNotLimitWhenDisabled(t *testing.T) {
 	if len(got) != len(jobs) {
 		t.Fatalf("expected disabled limit to preserve all jobs, got %d", len(got))
 	}
+}
+
 func TestRankAndDedupeJobsKeepsBestDuplicate(t *testing.T) {
 	jobs := []domain.Job{
 		{Source: "remoteok", URL: "https://example.com/jobs/42/", FitScore: 60, RoleMatch: 60, Title: "Backend Engineer", Company: "Acme"},
@@ -77,6 +79,4 @@ func TestRankAndDedupeJobsKeepsBestDuplicate(t *testing.T) {
 	if got[0].FitScore != 90 { t.Fatalf("expected highest-scoring duplicate to survive, got %+v", got[0]) }
 	if got[1].FitScore != 80 { t.Fatalf("expected second unique job to remain ranked, got %+v", got[1]) }
 }
-
-
 }
