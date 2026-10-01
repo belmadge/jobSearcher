@@ -464,3 +464,93 @@ func TestMatchHighlightsReportMissingRequirements(t *testing.T) {
 		t.Fatalf("expected missing requirement in highlights: %v", j.MatchHighlights)
 	}
 }
+
+func TestRankingPrefersCompleteRoleAndSkillMatch(t *testing.T) {
+	p := profile()
+	p.Technologies = []string{"Go", "PostgreSQL", "AWS", "Docker"}
+
+	complete := domain.Job{
+		Title:       "Backend Engineer",
+		Description: "Build backend services and APIs with Go, PostgreSQL, AWS and Docker.",
+	}
+	partial := domain.Job{
+		Title:       "Backend Engineer",
+		Description: "Build backend services and APIs with Go. Kubernetes is used instead of Docker.",
+	}
+
+	ScoreForRoles(&complete, p, []string{"Backend Developer"})
+	ScoreForRoles(&partial, p, []string{"Backend Developer"})
+
+	if !BetterMatch(complete, partial) {
+		t.Fatalf("complete technical match should rank above partial match: complete=%d partial=%d", complete.FitScore, partial.FitScore)
+	}
+}
+
+func TestRankingPenalizesMissingRequiredSkill(t *testing.T) {
+	p := profile()
+	p.Technologies = []string{"Go", "PostgreSQL", "AWS"}
+
+	complete := domain.Job{
+		Title:       "Backend Engineer",
+		Description: "Go, PostgreSQL and AWS are required.",
+	}
+	missing := domain.Job{
+		Title:       "Backend Engineer",
+		Description: "Go and PostgreSQL are required. Python is required.",
+	}
+
+	ScoreForRoles(&complete, p, []string{"Backend Developer"})
+	ScoreForRoles(&missing, p, []string{"Backend Developer"})
+
+	if len(missing.MustHaveMissing) == 0 {
+		t.Fatal("expected missing required skill to be recorded")
+	}
+	if !BetterMatch(complete, missing) {
+		t.Fatalf("job missing a required skill should not outrank a complete match: complete=%d missing=%d", complete.FitScore, missing.FitScore)
+	}
+}
+
+func TestRankingKeepsExplicitSeniorityFitRelevant(t *testing.T) {
+	p := profile()
+	p.TargetSeniority = "mid-level"
+
+	mid := domain.Job{
+		Title:       "Backend Engineer",
+		Description: "Backend APIs with Go and PostgreSQL.",
+	}
+	senior := domain.Job{
+		Title:       "Senior Backend Engineer",
+		Description: "Backend APIs with Go and PostgreSQL.",
+	}
+
+	ScoreForRoles(&mid, p, []string{"Backend Engineer"})
+	ScoreForRoles(&senior, p, []string{"Backend Engineer"})
+
+	if mid.SeniorityMatch <= senior.SeniorityMatch {
+		t.Fatalf("target seniority should prefer the aligned role: mid=%d senior=%d", mid.SeniorityMatch, senior.SeniorityMatch)
+	}
+	if !BetterMatch(mid, senior) {
+		t.Fatalf("role aligned with requested seniority should rank above the less-aligned role: mid=%d senior=%d", mid.FitScore, senior.FitScore)
+	}
+}
+
+func TestRankingDoesNotLetRelatedTechnologyBeatExactSkillMatch(t *testing.T) {
+	p := profile()
+	p.Technologies = []string{"Docker"}
+
+	exact := domain.Job{
+		Title:       "Backend Engineer",
+		Description: "Backend services using Docker.",
+	}
+	related := domain.Job{
+		Title:       "Backend Engineer",
+		Description: "Backend services using Kubernetes.",
+	}
+
+	ScoreForRoles(&exact, p, []string{"Backend Developer"})
+	ScoreForRoles(&related, p, []string{"Backend Developer"})
+
+	if !BetterMatch(exact, related) {
+		t.Fatalf("exact technology match should rank above related technology: exact=%d related=%d", exact.FitScore, related.FitScore)
+	}
+}
