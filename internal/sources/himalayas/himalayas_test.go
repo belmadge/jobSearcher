@@ -52,3 +52,17 @@ func TestFetchJobsKeepsSuccessfulTermsOnPartialFailure(t *testing.T) {
 		t.Fatalf("expected successful term to be preserved, got %+v", jobs)
 	}
 }
+
+func TestNormalizeGeneratesStableIDWithoutGUID(t *testing.T) {
+	job := normalize(job{
+		Title: "Backend Engineer",
+		CompanyName: "Acme",
+		ApplicationLink: "https://example.com/jobs/backend",
+	})
+	if job.ID == "himalayas:" || job.ID == "" {
+		t.Fatalf("expected fallback identity without GUID, got %q", job.ID)
+	}
+	if job.URL != "https://example.com/jobs/backend" || job.ApplyURL != job.URL {
+		t.Fatalf("expected application URL to be normalized, got %+v", job)
+	}
+}
