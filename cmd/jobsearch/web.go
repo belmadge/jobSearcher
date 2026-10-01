@@ -61,7 +61,7 @@ func searchForWeb(ctx context.Context,profile config.Profile,search config.Searc
  searchProfile:=matching.BuildSearchProfile(profile); searchTerms:=append(append([]string{},searchProfile.ExpandedRoles...),searchProfile.ExpandedSkills...); jobs,err:=fetchSources(ctx,"all",sources.Query{Terms:searchTerms,Location:"",BoardTokens:tokens,LeverSites:sites});if err!=nil&&len(jobs)==0{return nil,err}
  out:=[]domain.Job{}
  for _,j:=range jobs {if !isWithinDays(j,search.ArchiveDays)||!matching.IsRelevant(j,searchProfile.ExpandedRoles...)||!isFresh(j,search.FreshnessDays){continue}; x:=filter.Evaluate(j);matching.ScoreForRoles(&x,profile,searchProfile.Roles);if x.WorkplaceType=="remote"&&x.FitScore>=search.MinimumFitScore&&x.SeniorityMatch>20{out=append(out,x)}}
- sort.SliceStable(out,func(i,j int)bool{return out[i].FitScore>out[j].FitScore})
+ sort.SliceStable(out,func(i,j int)bool{return matching.BetterMatch(out[i],out[j])})
  return dedupe.Jobs(out),nil
 }
 func csvValues(s string)[]string{out:=[]string{};for _,v:=range strings.Split(s,","){if v=strings.TrimSpace(v);v!=""{out=append(out,v)}};return out}
