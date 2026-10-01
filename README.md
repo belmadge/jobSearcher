@@ -1,5 +1,7 @@
 # JobSearcher
 
+**Version:** 1.0.0
+
 Automação para buscar e comparar vagas de tecnologia compatíveis com um perfil configurado, priorizando vagas **100% remotas** em qualquer país ou região.
 
 ## Interface web
