@@ -181,13 +181,19 @@ func matchesRequestedRole(j domain.Job, requestedRoles []string) bool {
 			continue
 		}
 		if role == "backend developer" || role == "backend engineer" || strings.Contains(role, "backend") {
-			if strings.Contains(title, "backend") || strings.Contains(title, "back end") || strings.Contains(title, "back-end") {
-				return true
-			}
+			if matchesBackendRoleTitle(title) { return true }
 			continue
 		}
 		if role == "software engineer" || role == "software developer" {
 			if strings.Contains(title, "software engineer") || strings.Contains(title, "software developer") { return true }
+			continue
+		}
+		if strings.Contains(role, "devops") || role == "sre" || strings.Contains(role, "site reliability") {
+			if matchesDevOpsRoleTitle(title) { return true }
+			continue
+		}
+		if strings.Contains(role, "data engineer") {
+			if strings.Contains(title, "data engineer") || strings.Contains(title, "analytics engineer") || strings.Contains(title, "data platform engineer") { return true }
 			continue
 		}
 		words := strings.Fields(role)
@@ -198,6 +204,20 @@ func matchesRequestedRole(j domain.Job, requestedRoles []string) bool {
 			if strings.Contains(title, word) { matched++ }
 		}
 		if matched == len(words) { return true }
+	}
+	return false
+}
+
+func matchesBackendRoleTitle(title string) bool {
+	for _, candidate := range []string{"backend", "back end", "back-end", "api engineer", "api developer", "server-side developer", "server-side engineer"} {
+		if strings.Contains(title, candidate) { return true }
+	}
+	return false
+}
+
+func matchesDevOpsRoleTitle(title string) bool {
+	for _, candidate := range []string{"devops", "site reliability", "sre", "platform engineer", "platform developer", "infrastructure engineer"} {
+		if strings.Contains(title, candidate) { return true }
 	}
 	return false
 }
