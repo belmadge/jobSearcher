@@ -35,12 +35,13 @@ func TestIsFreshKeepsUnknownDates(t *testing.T) {
 func TestIsFreshUsesNewestOfUpdatedAndPostedDates(t *testing.T) {
 	job := domain.Job{
 		UpdatedAt: time.Now().Add(-10 * 24 * time.Hour).Format(time.RFC3339),
-		PostedAt:  time.Now().Add(-2 * 24 * time.Hour).Format(time.RFC3339),
+		PostedAt:  time.Now().Add(-2 * 24 * time.Hour).Format("2006-01-02"),
 	}
 	if !isFresh(job, 7) {
 		t.Fatal("expected recent posted date to keep the job fresh")
 	}
 }
+
 func TestLimitJobsPerSourceKeepsRankedOrder(t *testing.T) {
 	jobs := []domain.Job{
 		{Source: "greenhouse", FitScore: 95, Title: "Best"},
@@ -75,8 +76,13 @@ func TestRankAndDedupeJobsKeepsBestDuplicate(t *testing.T) {
 		{Source: "lever", URL: "https://example.com/jobs/99", FitScore: 80, RoleMatch: 80, Title: "Other Backend Engineer", Company: "Acme"},
 	}
 	got := rankAndDedupeJobs(jobs)
-	if len(got) != 2 { t.Fatalf("expected 2 unique jobs, got %d", len(got)) }
-	if got[0].FitScore != 90 { t.Fatalf("expected highest-scoring duplicate to survive, got %+v", got[0]) }
-	if got[1].FitScore != 80 { t.Fatalf("expected second unique job to remain ranked, got %+v", got[1]) }
-}
+	if len(got) != 2 {
+		t.Fatalf("expected 2 unique jobs, got %d", len(got))
+	}
+	if got[0].FitScore != 90 {
+		t.Fatalf("expected highest-scoring duplicate to survive, got %+v", got[0])
+	}
+	if got[1].FitScore != 80 {
+		t.Fatalf("expected second unique job to remain ranked, got %+v", got[1])
+	}
 }
