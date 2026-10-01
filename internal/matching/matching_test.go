@@ -395,3 +395,35 @@ func TestBetterMatchUsesDeterministicFallback(t *testing.T) {
 		t.Fatal("company should provide a deterministic final tie-break")
 	}
 }
+
+
+func TestMatchHighlightsExplainMainSignals(t *testing.T) {
+	p := profile()
+	j := domain.Job{Title: "Backend Engineer", Description: "Go APIs with PostgreSQL. 7+ years of experience."}
+	ScoreForRoles(&j, p, []string{"Backend Developer"})
+	if len(j.MatchHighlights) == 0 {
+		t.Fatal("expected match highlights")
+	}
+	foundRole, foundSkill, foundExperience := false, false, false
+	for _, h := range j.MatchHighlights {
+		if strings.Contains(h, "Cargo") { foundRole = true }
+		if strings.Contains(h, "Skills") { foundSkill = true }
+		if strings.Contains(h, "Experiência") { foundExperience = true }
+	}
+	if !foundRole || !foundSkill || !foundExperience {
+		t.Fatalf("expected role, skill and experience explanations: %v", j.MatchHighlights)
+	}
+}
+
+func TestMatchHighlightsReportMissingRequirements(t *testing.T) {
+	p := profile()
+	j := domain.Job{Title: "Backend Engineer", Description: "Go required. Python required."}
+	Score(&j, p)
+	found := false
+	for _, h := range j.MatchHighlights {
+		if strings.Contains(h, "Python") { found = true }
+	}
+	if !found {
+		t.Fatalf("expected missing requirement in highlights: %v", j.MatchHighlights)
+	}
+}
