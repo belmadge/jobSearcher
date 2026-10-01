@@ -33,7 +33,7 @@ func runSearch(ctx context.Context,profile config.Profile,search config.Search,b
  process:=func(candidates []domain.Job, old bool){
   for i:=range candidates{
    job:=filter.Evaluate(candidates[i])
-   matching.Score(&job,profile)
+   matching.ScoreForRoles(&job,profile,profileSearch.Roles)
    if job.SeniorityMatch <= 55 {
     if !old && job.SeniorityMatch == 55 && job.FitScore >= search.MinimumFitScore && job.LocationEligible == domain.LocationEligible {
      job.RecommendationStatus=recommendation(job.FitScore,search.MinimumFitScore)
