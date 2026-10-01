@@ -125,6 +125,16 @@ func IsRelevant(j domain.Job, requestedRoles ...string) bool {
 		// intentionally (for example Data Engineer or Java Developer).
 		return matchesRequestedRole(j, requestedRoles)
 	}
+
+	qaRequested := requestedRoleIncludesQA(requestedRoles)
+	for _, term := range irrelevantTitleTerms {
+		if qaRequested && isQATitleExclusion(term) {
+			continue
+		}
+		if strings.Contains(title, term) {
+			return false
+		}
+	}
 	if strings.Contains(title, "analista") || strings.Contains(title, "supervisor") || strings.Contains(title, "especialista") {
 		technicalTitleSignals := []string{"sistemas", "software", "desenvolvedor", "desenvolvedora", "backend", "api", "dados", "data", "cloud", "infraestrutura", "infrastructure", "devops", "engenheiro", "engenheira", "programador", "programadora"}
 		technical := false
