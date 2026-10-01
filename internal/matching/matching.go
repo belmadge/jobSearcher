@@ -229,12 +229,13 @@ func ScoreForRoles(j *domain.Job, p config.Profile, requestedRoles []string) {
 	for _, term := range nice { for _, skill := range p.Technologies { if canonical(skill) == canonical(term) && mentions(all, term) { j.NiceToHaveMatch = appendUnique(j.NiceToHaveMatch, term) } } }
 	skillMatch := skillMatchScore(all, p.Technologies)
 	j.SkillMatch = skillMatch
+	j.RelatedSkillMatch = relatedSkillMatchScore(all, p.Technologies)
 	baseTechnical := clamp(40+len(matched)*10-len(j.MustHaveMissing)*20, 0, 100)
 	if mentions(all, "Go") { baseTechnical = clamp(baseTechnical+5, 0, 100) }
 	if len(requestedRoles) == 0 {
 		j.TechnicalMatch = baseTechnical
 	} else {
-		j.TechnicalMatch = blendRoleAndSkills(roleMatch, skillMatch, baseTechnical)
+		j.TechnicalMatch = blendRoleAndSkills(roleMatch, blendSkillScores(skillMatch, j.RelatedSkillMatch), baseTechnical)
 	}
 	j.ResponsibilityMatch = responsibilityMatchScore(all, requestedRoles, p.Technologies)
 	cloudTerms := []string{"aws", "cloud", "kubernetes", "docker", "terraform", "infrastructure"}
@@ -385,6 +386,50 @@ func rolesEquivalent(requested, title string) bool {
 		return strings.Contains(title, "software engineer") || strings.Contains(title, "software developer") || strings.Contains(title, "backend engineer") || strings.Contains(title, "backend developer")
 	}
 	return false
+}
+
+
+var relatedTechnologyGroups = [][]string{
+	{"aws", "gcp", "azure"},
+	{"postgresql", "mysql", "mariadb", "oracle"},
+	{"docker", "kubernetes"},
+	{"rabbitmq", "kafka", "nats", "activemq"},
+	{"graphql", "rest", "grpc"},
+	{"redis", "memcached"},
+	{"terraform", "pulumi", "cloudformation", "ansible"},
+	{"datadog", "new relic", "grafana", "prometheus"},
+	{"go", "java", "python", "ruby", "c#"},
+}
+
+func relatedSkillMatchScore(text string, skills []string) int {
+	if len(skills) == 0 { return 50 }
+	relatedGroups := 0
+	coveredGroups := 0
+	for _, skill := range skills {
+		canonicalSkill := canonical(skill)
+		for _, group := range relatedTechnologyGroups {
+			inGroup := false
+			for _, member := range group {
+				if canonical(member) == canonicalSkill { inGroup = true; break }
+			}
+			if !inGroup { continue }
+			relatedGroups++
+			foundRelated := false
+			for _, member := range group {
+				if canonical(member) == canonicalSkill { continue }
+				if mentions(text, member) { foundRelated = true; break }
+			}
+			if foundRelated { coveredGroups++ }
+			break
+		}
+	}
+	if relatedGroups == 0 { return 50 }
+	return coveredGroups * 100 / relatedGroups
+}
+
+func blendSkillScores(exact, related int) int {
+	if related == 50 { return exact }
+	return clamp((exact*80+related*20)/100, 0, 100)
 }
 
 func skillMatchScore(text string, skills []string) int {
