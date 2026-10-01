@@ -208,8 +208,15 @@ func normalizeRoleText(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }
 
-// Score uses explicit required language for penalties. Missing optional or unmentioned profile skills do not reduce the score.
+// Score applies the existing technology, responsibility and seniority scoring.
 func Score(j *domain.Job, p config.Profile) {
+	ScoreForRoles(j, p, nil)
+}
+
+func ScoreForRoles(j *domain.Job, p config.Profile, requestedRoles []string) {
+	roleMatch := roleMatchScore(j, requestedRoles)
+	j.RoleMatch = roleMatch
+
 	all := strings.Join([]string{j.Title, j.Description, j.Requirements}, " ")
 	matched := []string{}
 	for _, skill := range p.Technologies { if mentions(all, skill) { matched = appendUnique(matched, skill) } }
@@ -220,8 +227,11 @@ func Score(j *domain.Job, p config.Profile) {
 		if inProfile && mentions(all, term) { j.MustHaveMatch = appendUnique(j.MustHaveMatch, term) } else { j.MustHaveMissing = appendUnique(j.MustHaveMissing, term) }
 	}
 	for _, term := range nice { for _, skill := range p.Technologies { if canonical(skill) == canonical(term) && mentions(all, term) { j.NiceToHaveMatch = appendUnique(j.NiceToHaveMatch, term) } } }
-	j.TechnicalMatch = clamp(40+len(matched)*10-len(j.MustHaveMissing)*20, 0, 100)
-	if mentions(all, "Go") { j.TechnicalMatch = clamp(j.TechnicalMatch+5, 0, 100) }
+	skillMatch := skillMatchScore(all, p.Technologies)
+	j.SkillMatch = skillMatch
+	baseTechnical := clamp(40+len(matched)*10-len(j.MustHaveMissing)*20, 0, 100)
+	if mentions(all, "Go") { baseTechnical = clamp(baseTechnical+5, 0, 100) }
+	j.TechnicalMatch = blendRoleAndSkills(roleMatch, skillMatch, baseTechnical)
 	respTerms := []string{"backend", "api", "service", "distributed systems", "integration"}
 	j.ResponsibilityMatch = categoryCoverage(all, respTerms)
 	cloudTerms := []string{"aws", "cloud", "kubernetes", "docker", "terraform", "infrastructure"}
@@ -255,6 +265,61 @@ func Score(j *domain.Job, p config.Profile) {
 	if len(j.MustHaveMissing) > 0 { j.Reasons = append(j.Reasons, "Required skills missing: "+strings.Join(j.MustHaveMissing, ", ")) }
 	if len(j.NiceToHaveMatch) > 0 { j.Reasons = append(j.Reasons, "Preferred skills found: "+strings.Join(j.NiceToHaveMatch, ", ")) }
 	if j.ResponsibilityMatch >= 40 { j.Reasons = append(j.Reasons, "Backend/API responsibilities are present") }
+}
+
+func roleMatchScore(j *domain.Job, requestedRoles []string) int {
+	if len(requestedRoles) == 0 { return 50 }
+	title := normalizeRoleText(j.Title)
+	best := 0
+	for _, requested := range requestedRoles {
+		role := normalizeRoleText(requested)
+		if role == "" { continue }
+		if title == role { if 100 > best { best = 100 }; continue }
+		if strings.Contains(title, role) { if 95 > best { best = 95 }; continue }
+		if rolesEquivalent(role, title) { if 85 > best { best = 85 }; continue }
+		words := strings.Fields(role)
+		if len(words) == 0 { continue }
+		hits := 0
+		for _, word := range words {
+			if word == "developer" || word == "engineer" {
+				if strings.Contains(title, "developer") || strings.Contains(title, "engineer") { hits++; continue }
+			}
+			if strings.Contains(title, word) { hits++ }
+		}
+		if hits > 0 {
+			score := 35 + (65 * hits / len(words))
+			if score > best { best = score }
+		}
+	}
+	return best
+}
+
+func rolesEquivalent(requested, title string) bool {
+	if requested == "qa" || strings.Contains(requested, "quality assurance") {
+		return strings.Contains(title, "qa") || strings.Contains(title, "quality assurance") || strings.Contains(title, "sdet") || strings.Contains(title, "test engineer")
+	}
+	if strings.Contains(requested, "backend") {
+		return strings.Contains(title, "backend") || strings.Contains(title, "back end") || strings.Contains(title, "back-end") || strings.Contains(title, "api engineer") || strings.Contains(title, "api developer")
+	}
+	if requested == "software engineer" || requested == "software developer" {
+		return strings.Contains(title, "software engineer") || strings.Contains(title, "software developer") || strings.Contains(title, "backend engineer") || strings.Contains(title, "backend developer")
+	}
+	return false
+}
+
+func skillMatchScore(text string, skills []string) int {
+	if len(skills) == 0 { return 50 }
+	hits := 0
+	for _, skill := range skills {
+		if mentions(text, skill) { hits++ }
+	}
+	return hits * 100 / len(skills)
+}
+
+func blendRoleAndSkills(roleMatch, skillMatch, baseTechnical int) int {
+	if roleMatch == 0 { roleMatch = 50 }
+	blended := (roleMatch*40 + skillMatch*40 + baseTechnical*20) / 100
+	return clamp(blended, 0, 100)
 }
 
 func inferSeniority(j domain.Job) (int, string) {
