@@ -11,7 +11,7 @@ var brazilStateCode = regexp.MustCompile(`(^|[ ,;])-?(ac|al|ap|am|ba|ce|df|es|go
 
 func norm(s string) string {
 	s = strings.ToLower(s)
-	s = strings.NewReplacer("\u00e1", "a", "\u00e0", "a", "\u00e2", "a", "\u00e3", "a", "\u00e9", "e", "\u00ea", "e", "\u00ed", "i", "\u00f3", "o", "\u00f4", "o", "\u00f5", "o", "\u00fa", "u", "\u00e7", "c").Replace(s)
+	s = strings.NewReplacer("á", "a", "à", "a", "â", "a", "ã", "a", "é", "e", "ê", "e", "í", "i", "ó", "o", "ô", "o", "õ", "o", "ú", "u", "ç", "c").Replace(s)
 	return strings.Join(words.FindAllString(s, -1), " ")
 }
 
@@ -24,71 +24,89 @@ func containsAny(s string, values ...string) bool {
 	return false
 }
 
-// ClassifyLocation accepts any explicitly remote role unless the posting contains
-// a clear geographic restriction that excludes Brazil. Physical roles must be in
-// Maceio/Alagoas. Ambiguous workplace descriptions remain uncertain.
+// ClassifyLocation accepts only roles that are explicitly remote.
+// Geographic restrictions are evaluated separately so a remote role tied
+// exclusively to an incompatible country or region is rejected.
 func ClassifyLocation(j domain.Job) (string, string) {
 	w, l := norm(j.WorkplaceType), norm(j.Location)
 	d := norm(j.Description)
 	combined := l + " " + d
-	remote := containsAny(w, "remote", "remoto", "remota") || containsAny(l, "remote", "remoto", "remota") || containsAny(d, "remote work", "remote role", "remote position", "fully remote", "work remotely", "trabalho remoto", "vaga remota", "vaga remoto")
-	hybrid := containsAny(w, "hybrid", "hibrido", "híbrido") || containsAny(l, "hybrid", "hibrido", "híbrido") || containsAny(d, "hybrid work", "hybrid role", "hybrid position", "work hybrid", "trabalho hibrido", "trabalho híbrido", "vaga híbrida", "vaga hibrida")
-	onsite := containsAny(w, "onsite", "on site", "in person", "presencial") || containsAny(d, "onsite", "on site", "in person", "office-based", "office based", "must work from the office", "presencial", "trabalho presencial", "modelo presencial")
-	physicalMaceio := containsAny(combined, "maceio", "alagoas")
-	outsideAlagoasState := brazilStateCode.MatchString(l) && !containsAny(l, " al ", "alagoas", "maceio")
 
-	// Prefer explicit workplace metadata over incidental wording in descriptions.
+	remote := containsAny(w, "remote", "remoto", "remota") ||
+		containsAny(l, "remote", "remoto", "remota") ||
+		containsAny(d, "remote work", "remote role", "remote position", "fully remote", "work remotely", "trabalho remoto", "vaga remota", "vaga remoto")
+
+	hybrid := containsAny(w, "hybrid", "hibrido", "híbrido") ||
+		containsAny(l, "hybrid", "hibrido", "híbrido") ||
+		containsAny(d, "hybrid work", "hybrid role", "hybrid position", "work hybrid", "trabalho hibrido", "trabalho híbrido", "vaga híbrida", "vaga hibrida")
+
+	onsite := containsAny(w, "onsite", "on site", "in person", "presencial") ||
+		containsAny(l, "onsite", "on site", "in person", "presencial") ||
+		containsAny(d, "onsite", "on site", "in person", "office-based", "office based", "must work from the office", "presencial", "trabalho presencial", "modelo presencial")
+
 	explicitRemote := containsAny(w, "remote", "remoto", "remota") || containsAny(l, "remote", "remoto", "remota")
 	explicitHybrid := containsAny(w, "hybrid", "hibrido", "híbrido") || containsAny(l, "hybrid", "hibrido", "híbrido")
 	explicitOnsite := containsAny(w, "onsite", "on site", "in person", "presencial") || containsAny(l, "onsite", "on site", "in person", "presencial")
-	if explicitRemote { hybrid, onsite = false, false }
-	if explicitHybrid { remote, onsite = false, false }
-	if explicitOnsite { remote, hybrid = false, false }
+
+	if explicitRemote {
+		hybrid, onsite = false, false
+	}
+	if explicitHybrid {
+		remote, onsite = false, false
+	}
+	if explicitOnsite {
+		remote, hybrid = false, false
+	}
+
 	if remote && (hybrid || onsite) {
 		return "uncertain_location", "posting contains conflicting remote and physical-workplace signals"
 	}
 
-	if remote {
-		if containsAny(combined,
-			"united states only", "us only", "usa only", "europe only", "uk only", "united kingdom only",
-			"canada only", "worldwide except brazil", "worldwide excluding brazil", "excluding brazil",
-			"except brazil", "must be located in the united states", "must reside in the united states",
-			"must be based in the united states", "candidates must reside in the united states",
-			"candidates must be located in the united states", "must be located in the us",
-			"must reside in the us", "must be based in the us", "must reside in canada",
-			"must be located in europe", "must reside in europe", "must be located in the uk",
-			"must reside in the uk") {
-			return "rejected_location", "remote role is explicitly restricted to an incompatible region"
-		}
-		if containsAny(combined, "brazil only", "brasil only", "brazil", "brasil", "latam", "latin america", "south america", "worldwide", "global", "americas") {
-			return "approved", "remote scope explicitly includes Brazil or a broader eligible region"
-		}
-		// A specific remote location in an ineligible country is treated as a geographic restriction.
-		// Keep generic "Remote" postings eligible because they do not establish a country restriction.
-		if containsAny(l, "canada", "united states", "usa", "united kingdom", "uk", "europe", "australia", "new zealand", "singapore", "india", "indonesia", "philippines", "malaysia", "japan", "china", "hong kong", "taiwan", "south korea", "germany", "france", "spain", "italy", "netherlands", "belgium", "ireland", "portugal", "poland", "sweden", "norway", "denmark", "switzerland", "israel", "south africa", "nigeria") {
-			return "rejected_location", "remote posting is tied to a country or region outside the configured eligible scope"
-		}
-		// "Remoto; <office base>" is a common Brazilian listing format:
-		// the office address is informational while the workplace mode remains remote.
-		if strings.Contains(l, "remote") {
-			return "approved", "remote work is stated without an incompatible country restriction"
-		}
-		if strings.Contains(l, "remoto") || strings.Contains(w, "remoto") {
-			return "approved", "remote work is explicitly stated"
-		}
-		return "uncertain_location", "remote work is stated but the geographic scope is not explicit enough"
+	if hybrid {
+		return "rejected_location", "hybrid roles are outside the global remote-only search"
+	}
+	if onsite {
+		return "rejected_location", "onsite roles are outside the global remote-only search"
+	}
+	if !remote {
+		return "uncertain_location", "workplace type could not be confirmed as remote"
 	}
 
-	if physicalMaceio && containsAny(combined, "brazil", "brasil", "alagoas", "maceio") {
-		return "approved", "physical location is Maceio/Alagoas"
+	if containsAny(combined,
+		"united states only", "us only", "usa only", "europe only", "uk only", "united kingdom only",
+		"canada only", "australia only", "new zealand only", "singapore only", "india only",
+		"worldwide except brazil", "worldwide excluding brazil", "excluding brazil", "except brazil",
+		"must be located in the united states", "must reside in the united states",
+		"must be based in the united states", "candidates must reside in the united states",
+		"candidates must be located in the united states", "must be located in the us",
+		"must reside in the us", "must be based in the us", "must reside in canada",
+		"must be located in canada", "must reside in europe", "must be located in europe",
+		"must reside in the uk", "must be located in the uk") {
+		return "rejected_location", "remote role is explicitly restricted to an incompatible region"
 	}
-	if outsideAlagoasState {
-		return "rejected_location", "physical location is outside Maceio/Alagoas"
+
+	if containsAny(combined,
+		"brazil only", "brasil only", "brazil", "brasil", "latam", "latin america",
+		"south america", "worldwide", "global", "americas") {
+		return "approved", "remote scope explicitly includes Brazil or a broader eligible region"
 	}
-	if hybrid || onsite || physicalMaceio {
-		return "rejected_location", "onsite or hybrid physical location is not Maceio/Alagoas"
+
+	// A country/region in the location field is treated as a geographic restriction.
+	if containsAny(l,
+		"canada", "united states", "usa", "united kingdom", "uk", "europe",
+		"australia", "new zealand", "singapore", "india", "indonesia", "philippines",
+		"malaysia", "japan", "china", "hong kong", "taiwan", "south korea", "germany",
+		"france", "spain", "italy", "netherlands", "belgium", "ireland", "portugal",
+		"poland", "sweden", "norway", "denmark", "switzerland", "israel",
+		"south africa", "nigeria", "emea", "apac") {
+		return "rejected_location", "remote posting is tied to a country or region outside the global Brazil-compatible scope"
 	}
-	return "uncertain_location", "workplace type or physical location could not be determined"
+
+	if strings.Contains(l, "remote") || strings.Contains(l, "remoto") || strings.Contains(w, "remote") || strings.Contains(w, "remoto") {
+		return "approved", "remote work is explicitly stated without an incompatible country restriction"
+	}
+
+	return "uncertain_location", "remote work is stated but the geographic scope could not be determined"
 }
 
 func Evaluate(j domain.Job) domain.Job {
@@ -104,29 +122,36 @@ func Evaluate(j domain.Job) domain.Job {
 	}
 
 	w, l, d := norm(j.WorkplaceType), norm(j.Location), norm(j.Description)
-	remote := containsAny(w, "remote", "remoto", "remota") || containsAny(l, "remote", "remoto", "remota") || containsAny(d, "remote work", "remote role", "remote position", "fully remote", "work remotely", "trabalho remoto", "vaga remota", "vaga remoto")
-	hybrid := containsAny(w, "hybrid", "hibrido", "híbrido") || containsAny(l, "hybrid", "hibrido", "híbrido") || containsAny(d, "hybrid work", "hybrid role", "hybrid position", "work hybrid", "trabalho hibrido", "trabalho híbrido", "vaga híbrida", "vaga hibrida")
-	onsite := containsAny(w, "onsite", "on site", "in person", "presencial") || containsAny(d, "onsite", "on site", "in person", "office-based", "office based", "must work from the office", "presencial", "trabalho presencial", "modelo presencial")
+	remote := containsAny(w, "remote", "remoto", "remota") ||
+		containsAny(l, "remote", "remoto", "remota") ||
+		containsAny(d, "remote work", "remote role", "remote position", "fully remote", "work remotely", "trabalho remoto", "vaga remota", "vaga remoto")
+	hybrid := containsAny(w, "hybrid", "hibrido", "híbrido") ||
+		containsAny(l, "hybrid", "hibrido", "híbrido") ||
+		containsAny(d, "hybrid work", "hybrid role", "hybrid position", "work hybrid", "trabalho hibrido", "trabalho híbrido", "vaga híbrida", "vaga hibrida")
+	onsite := containsAny(w, "onsite", "on site", "in person", "presencial") ||
+		containsAny(l, "onsite", "on site", "in person", "presencial") ||
+		containsAny(d, "onsite", "on site", "in person", "office-based", "office based", "must work from the office", "presencial", "trabalho presencial", "modelo presencial")
+
 	explicitRemote := containsAny(w, "remote", "remoto", "remota") || containsAny(l, "remote", "remoto", "remota")
 	explicitHybrid := containsAny(w, "hybrid", "hibrido", "híbrido") || containsAny(l, "hybrid", "hibrido", "híbrido")
 	explicitOnsite := containsAny(w, "onsite", "on site", "in person", "presencial") || containsAny(l, "onsite", "on site", "in person", "presencial")
-	if explicitRemote { hybrid, onsite = false, false }
-	if explicitHybrid { remote, onsite = false, false }
-	if explicitOnsite { remote, hybrid = false, false }
-	if remote == hybrid && !onsite {
-		j.WorkplaceType = "unknown"
-		return j
+
+	if explicitRemote {
+		hybrid, onsite = false, false
 	}
-	if onsite && (remote || hybrid) {
-		j.WorkplaceType = "unknown"
-		return j
+	if explicitHybrid {
+		remote, onsite = false, false
 	}
+	if explicitOnsite {
+		remote, hybrid = false, false
+	}
+
 	switch {
-	case remote:
+	case remote && !hybrid && !onsite:
 		j.WorkplaceType = "remote"
-	case hybrid:
+	case hybrid && !remote && !onsite:
 		j.WorkplaceType = "hybrid"
-	case onsite:
+	case onsite && !remote && !hybrid:
 		j.WorkplaceType = "onsite"
 	default:
 		j.WorkplaceType = "unknown"
