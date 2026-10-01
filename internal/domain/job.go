@@ -59,6 +59,7 @@ type Job struct {
 	NiceToHaveMatch []string `json:"nice_to_have_match"`
 	Gaps []string `json:"gaps"`
 	Reasons []string `json:"reasons"`
+	MatchHighlights []string `json:"match_highlights,omitempty"`
 	FirstSeenAt string `json:"first_seen_at,omitempty"`
 	LastSeenAt string `json:"last_seen_at,omitempty"`
 	SeenCount int `json:"seen_count,omitempty"`
