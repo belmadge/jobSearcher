@@ -31,7 +31,7 @@ body{font-family:system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0
 <label>Anos de experiência</label><input type="number" min="0" name="experience" value="{{.Experience}}">
 <p class="muted">🌎 Busca global — somente vagas 100% remotas.</p>
 <button type="submit">🔎 Buscar vagas</button></form></div>
-{{if .Searched}}<div class="card"><h2>Resultados</h2><p class="muted">{{.Count}} vagas elegíveis encontradas.</p>{{range .Jobs}}<div class="job"><div class="score">{{.FitScore}}% — {{.Title}}</div><strong>{{.Company}}</strong><div class="muted">{{.Location}} · {{.WorkplaceType}} · {{.Seniority}}</div><div class="skills"><span class="pill">Cargo {{.RoleMatch}}%</span><span class="pill">Skills {{.SkillMatch}}%</span><span class="pill">Técnico {{.TechnicalMatch}}%</span></div><div class="skills">✓ {{join .MustHaveMatch}} {{if .MustHaveMissing}} · △ {{join .MustHaveMissing}}{{end}}</div><div class="skills"><span class="pill">{{.Source}}</span><span class="pill">{{.RecommendationStatus}}</span></div><p><a href="{{.URL}}" target="_blank" rel="noopener">Ver vaga →</a></p></div>{{else}}<p>Nenhuma vaga encontrada com esses critérios.</p>{{end}}</div>{{end}}
+{{if .Searched}}<div class="card"><h2>Resultados</h2><p class="muted">{{.Count}} vagas elegíveis encontradas.</p>{{range .Jobs}}<div class="job"><div class="score">{{.FitScore}}% — {{.Title}}</div><strong>{{.Company}}</strong><div class="muted">{{.Location}} · {{.WorkplaceType}} · {{.Seniority}}</div><div class="skills"><span class="pill">Cargo {{.RoleMatch}}%</span><span class="pill">Skills {{.SkillMatch}}%</span><span class="pill">Técnico {{.TechnicalMatch}}%</span><span class="pill">Responsabilidades {{.ResponsibilityMatch}}%</span><span class="pill">Senioridade {{.SeniorityMatch}}%</span><span class="pill">Experiência {{.ExperienceMatch}}%</span></div><div class="skills">✓ {{join .MustHaveMatch}} {{if .MustHaveMissing}} · △ {{join .MustHaveMissing}}{{end}}</div><div class="skills"><span class="pill">{{.Source}}</span><span class="pill">{{.RecommendationStatus}}</span></div><p><a href="{{.URL}}" target="_blank" rel="noopener">Ver vaga →</a></p></div>{{else}}<p>Nenhuma vaga encontrada com esses critérios.</p>{{end}}</div>{{end}}
 </body></html>`
 
 type webView struct { Roles, Skills, Experience, Seniority string; Searched bool; Count int; Jobs []domain.Job }
@@ -44,7 +44,7 @@ func startWebServer(ctx context.Context, boards config.Boards) error {
    _=r.ParseForm(); v.Roles=strings.TrimSpace(r.FormValue("roles")); v.Skills=strings.TrimSpace(r.FormValue("skills")); v.Experience=r.FormValue("experience"); v.Seniority=r.FormValue("seniority")
    years,_:=strconv.Atoi(v.Experience); if years<0 {years=0}
    roles:=csvValues(v.Roles); skills:=csvValues(v.Skills); if len(roles)==0 {http.Error(w,"informe pelo menos um cargo ou área",400);return}; if len(skills)==0 {http.Error(w,"informe pelo menos uma skill",400);return}
-   profile:=config.Profile{Titles:roles,Technologies:skills,YearsExperience:years,Weights:config.Weights{Technical:35,Responsibility:15,Seniority:25,Cloud:10,Domain:7,Language:4,AI:4}}
+   profile:=config.Profile{TargetSeniority:v.Seniority,Titles:roles,Technologies:skills,YearsExperience:years,Weights:config.Weights{Technical:35,Responsibility:15,Seniority:25,Cloud:10,Domain:7,Language:4,AI:4}}
    search:=config.Search{Location:"",RemoteAllowed:[]string{"Brazil","LATAM","South America","Worldwide","Americas"},PreferredTitles:roles,MinimumFitScore:55,FreshnessDays:7,ArchiveDays:30,MaxJobsPerSource:100}
    jobs,err:=searchForWeb(ctx,profile,search,boards,roles); if err!=nil {http.Error(w,"erro ao buscar vagas: "+err.Error(),http.StatusBadGateway);return}; v.Searched=true;v.Jobs=jobs;v.Count=len(jobs)
   }
@@ -60,7 +60,7 @@ func searchForWeb(ctx context.Context,profile config.Profile,search config.Searc
  for _,b:=range boards.Lever {if b.Enabled&&strings.TrimSpace(b.Site)!=""{sites=append(sites,b.Site)}}
  searchProfile:=matching.BuildSearchProfile(profile); searchTerms:=append(append([]string{},searchProfile.ExpandedRoles...),searchProfile.ExpandedSkills...); jobs,err:=fetchSources(ctx,"all",sources.Query{Terms:searchTerms,Location:"",BoardTokens:tokens,LeverSites:sites});if err!=nil&&len(jobs)==0{return nil,err}
  out:=[]domain.Job{}
- for _,j:=range jobs {if !isWithinDays(j,search.ArchiveDays)||!matching.IsRelevant(j,searchProfile.ExpandedRoles...)||!isFresh(j,search.FreshnessDays){continue}; x:=filter.Evaluate(j);matching.ScoreForRoles(&x,profile,searchProfile.Roles);if x.WorkplaceType=="remote"&&x.FitScore>=search.MinimumFitScore&&x.SeniorityMatch>55{out=append(out,x)}}
+ for _,j:=range jobs {if !isWithinDays(j,search.ArchiveDays)||!matching.IsRelevant(j,searchProfile.ExpandedRoles...)||!isFresh(j,search.FreshnessDays){continue}; x:=filter.Evaluate(j);matching.ScoreForRoles(&x,profile,searchProfile.Roles);if x.WorkplaceType=="remote"&&x.FitScore>=search.MinimumFitScore&&x.SeniorityMatch>20{out=append(out,x)}}
  sort.SliceStable(out,func(i,j int)bool{return out[i].FitScore>out[j].FitScore})
  return dedupe.Jobs(out),nil
 }
