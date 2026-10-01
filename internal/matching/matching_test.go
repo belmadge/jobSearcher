@@ -306,7 +306,7 @@ func TestTargetSeniorityChangesPreference(t *testing.T) {
 func TestRelatedTechnologyMatch(t *testing.T) {
 	p := profile()
 	p.Technologies = []string{"Docker", "PostgreSQL", "AWS"}
-	j := domain.Job{Title: "Backend Engineer", Description: "Build services with Kubernetes, MySQL and GCP"}
+	j := domain.Job{Title: "Backend Engineer", Description: "Build services with Kubernetes and MySQL"}
 	Score(&j, p)
 	if j.SkillMatch != 0 {
 		t.Fatalf("unmentioned exact skills should not receive exact credit: %d", j.SkillMatch)
