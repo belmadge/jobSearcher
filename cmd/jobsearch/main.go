@@ -1,7 +1,7 @@
 package main
 
 import (
- "context";"encoding/json";"errors";"fmt";"os";"path/filepath";"sort";"strings";"time"
+ "context";"encoding/json";"errors";"fmt";"os";"path/filepath";"sort";"strings";"sync";"time"
  "jobsearcher/internal/config";"jobsearcher/internal/dedupe";"jobsearcher/internal/domain";"jobsearcher/internal/filter";"jobsearcher/internal/matching";"jobsearcher/internal/report";"jobsearcher/internal/sources";"jobsearcher/internal/sources/greenhouse";"jobsearcher/internal/sources/lever";"jobsearcher/internal/sources/remoteok";"jobsearcher/internal/sources/remotive";"jobsearcher/internal/sources/programathor";"jobsearcher/internal/sources/himalayas";"jobsearcher/internal/storage/sqlite"
 )
 func main(){if err:=run(context.Background(),os.Args[1:]);err!=nil{fmt.Fprintln(os.Stderr,"error:",err);os.Exit(1)}}
@@ -98,20 +98,47 @@ func fetchSources(ctx context.Context,name string,q sources.Query)([]domain.Job,
  if name=="himalayas"{jobs,err:=himalayas.NewClient().FetchJobs(ctx,q);return sanitizeJobs(jobs),err}
  if name!="all"{return nil,fmt.Errorf("unknown source %q",name)}
 
- results:=[]sourceResult{}
+ sourcesToFetch:=[]sources.JobSource{
+  remoteok.NewClient(),
+  remotive.NewClient(),
+  programathor.NewClient(),
+  himalayas.NewClient(),
+ }
+ results:=make([]sourceResult,0,len(sourcesToFetch)+2)
+ var mu sync.Mutex
+ var wg sync.WaitGroup
+ for _,source:=range sourcesToFetch {
+  source:=source
+  wg.Add(1)
+  go func(){
+   defer wg.Done()
+   jobs,err:=source.FetchJobs(ctx,q)
+   mu.Lock()
+   results=append(results,sourceResult{jobs:sanitizeJobs(jobs),err:err})
+   mu.Unlock()
+  }()
+ }
  if len(q.BoardTokens)>0 {
-  j,e:=greenhouse.NewClient().FetchJobs(ctx,q)
-  results=append(results,sourceResult{jobs:j,err:e})
+  wg.Add(1)
+  go func(){
+   defer wg.Done()
+   jobs,err:=greenhouse.NewClient().FetchJobs(ctx,q)
+   mu.Lock()
+   results=append(results,sourceResult{jobs:sanitizeJobs(jobs),err:err})
+   mu.Unlock()
+  }()
  }
  if len(q.LeverSites)>0 {
-  j,e:=lever.NewClient().FetchJobs(ctx,q)
-  results=append(results,sourceResult{jobs:j,err:e})
+  wg.Add(1)
+  go func(){
+   defer wg.Done()
+   jobs,err:=lever.NewClient().FetchJobs(ctx,q)
+   mu.Lock()
+   results=append(results,sourceResult{jobs:sanitizeJobs(jobs),err:err})
+   mu.Unlock()
+  }()
  }
- j,e:=remoteok.NewClient().FetchJobs(ctx,q);results=append(results,sourceResult{jobs:j,err:e})
- j,e=remotive.NewClient().FetchJobs(ctx,q);results=append(results,sourceResult{jobs:j,err:e})
- j,e=programathor.NewClient().FetchJobs(ctx,q);results=append(results,sourceResult{jobs:j,err:e})
- j,e=himalayas.NewClient().FetchJobs(ctx,q);results=append(results,sourceResult{jobs:j,err:e})
-
+ wg.Wait()
  jobs,err:=mergeSourceResults(results...)
  if err!=nil && len(jobs)>0{return jobs,err}
  return jobs,err
