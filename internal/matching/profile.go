@@ -41,7 +41,7 @@ var skillAliases = map[string][]string{
 	"sql": {"sql","structured query language"}, "aws": {"aws","amazon web services"},
 	"gcp": {"gcp","google cloud","google cloud platform"}, "azure": {"azure","microsoft azure"},
 	"graphql": {"graphql","graph ql"}, "docker": {"docker","containerization","containers"},
-	"kubernetes": {"kubernetes","k8s"}, "terraform": {"terraform","infrastructure as code","iac"},
+	"kubernetes": {"kubernetes","k8s"}, "k8s": {"kubernetes","k8s"}, "terraform": {"terraform","infrastructure as code","iac"},
 	"rabbitmq": {"rabbitmq","rabbit mq","message broker"},
 	"ci/cd": {"ci/cd","ci cd","continuous integration","continuous delivery"},
 	"datadog": {"datadog","data dog"}, "observability": {"observability","monitoring","distributed tracing","tracing"},
