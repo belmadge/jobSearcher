@@ -86,3 +86,63 @@ func TestRankAndDedupeJobsKeepsBestDuplicate(t *testing.T) {
 		t.Fatalf("expected second unique job to remain ranked, got %+v", got[1])
 	}
 }
+
+func TestWebJobEligibleRequiresExplicitGlobalRemoteCompatibility(t *testing.T) {
+	job := domain.Job{
+		WorkplaceType:    "remote",
+		LocationEligible: domain.LocationEligible,
+		FitScore:         80,
+		SeniorityMatch:   85,
+	}
+	if !webJobEligible(job, 55) {
+		t.Fatal("expected eligible remote job to pass")
+	}
+}
+
+func TestWebJobEligibleRejectsNonRemoteWorkplace(t *testing.T) {
+	job := domain.Job{
+		WorkplaceType:    "hybrid",
+		LocationEligible: domain.LocationEligible,
+		FitScore:         90,
+		SeniorityMatch:   90,
+	}
+	if webJobEligible(job, 55) {
+		t.Fatal("expected hybrid job to be rejected")
+	}
+}
+
+func TestWebJobEligibleRejectsUnknownLocation(t *testing.T) {
+	job := domain.Job{
+		WorkplaceType:    "remote",
+		LocationEligible: domain.LocationUnknown,
+		FitScore:         90,
+		SeniorityMatch:   90,
+	}
+	if webJobEligible(job, 55) {
+		t.Fatal("expected geographically uncertain job to be rejected")
+	}
+}
+
+func TestWebJobEligibleRejectsBelowMinimumScore(t *testing.T) {
+	job := domain.Job{
+		WorkplaceType:    "remote",
+		LocationEligible: domain.LocationEligible,
+		FitScore:         54,
+		SeniorityMatch:   90,
+	}
+	if webJobEligible(job, 55) {
+		t.Fatal("expected low-fit job to be rejected")
+	}
+}
+
+func TestWebJobEligibleRejectsOutOfTargetSeniority(t *testing.T) {
+	job := domain.Job{
+		WorkplaceType:    "remote",
+		LocationEligible: domain.LocationEligible,
+		FitScore:         90,
+		SeniorityMatch:   20,
+	}
+	if webJobEligible(job, 55) {
+		t.Fatal("expected out-of-target seniority job to be rejected")
+	}
+}
