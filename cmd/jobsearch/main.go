@@ -17,7 +17,7 @@ func runSearch(ctx context.Context,profile config.Profile,search config.Search,b
  for _,b:=range boards.Lever{if b.Enabled&&strings.TrimSpace(b.Site)!=""{sites=append(sites,b.Site)}}
  tokens=append(tokens,splitEnv("GREENHOUSE_BOARD_TOKENS")...);sites=append(sites,splitEnv("LEVER_SITES")...)
  tokens,sites=unique(tokens),unique(sites)
- query:=sources.Query{Terms:search.PreferredTitles,Location:search.Location,BoardTokens:tokens,LeverSites:sites}
+ profileSearch:=matching.BuildSearchProfile(profile); query:=sources.Query{Terms:append(append([]string{},profileSearch.ExpandedRoles...),profileSearch.ExpandedSkills...),Location:"",BoardTokens:tokens,LeverSites:sites}
  jobs,err:=fetchSources(ctx,sourceName,query)
  found:=len(jobs)
  if err!=nil{fmt.Fprintln(os.Stderr,"source warning:",err)}
