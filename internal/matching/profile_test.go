@@ -56,3 +56,36 @@ func TestBuildSearchProfileBroadensRetrievalByRoleFamily(t *testing.T) {
 		}
 	}
 }
+
+func TestDiscoveryTermsPrioritizeRolesAndStayBounded(t *testing.T) {
+	profile := BuildSearchProfile(config.Profile{
+		Titles:       []string{"Backend Developer"},
+		Technologies: []string{"Go", "PostgreSQL", "AWS", "Docker", "Kubernetes"},
+	})
+
+	if len(profile.DiscoveryTerms) == 0 {
+		t.Fatal("expected discovery terms")
+	}
+	if len(profile.DiscoveryTerms) > maxDiscoveryTerms {
+		t.Fatalf("discovery terms exceeded budget: got %d, want <= %d", len(profile.DiscoveryTerms), maxDiscoveryTerms)
+	}
+	if profile.DiscoveryTerms[0] != "Backend Developer" {
+		t.Fatalf("explicit role should be the first discovery term, got %q", profile.DiscoveryTerms[0])
+	}
+}
+
+func TestDiscoveryTermsDeduplicateNormalizedValues(t *testing.T) {
+	profile := BuildSearchProfile(config.Profile{
+		Titles:       []string{"Backend Developer", "backend developer"},
+		Technologies: []string{"Go", "golang"},
+	})
+
+	seen := map[string]bool{}
+	for _, term := range profile.DiscoveryTerms {
+		key := normalizeRoleText(term)
+		if seen[key] {
+			t.Fatalf("duplicate discovery term: %q", term)
+		}
+		seen[key] = true
+	}
+}
