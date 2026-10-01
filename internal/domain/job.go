@@ -45,6 +45,7 @@ type Job struct {
 	SkillMatch int `json:"skill_match"`
 	TechnicalMatch int `json:"technical_match"`
 	ResponsibilityMatch int `json:"responsibility_match"`
+	ExperienceMatch int `json:"experience_match"`
 	SeniorityMatch int `json:"seniority_match"`
 	SeniorityReason string `json:"seniority_reason,omitempty"`
 	CloudMatch int `json:"cloud_match"`
