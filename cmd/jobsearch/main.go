@@ -97,17 +97,26 @@ func fetchSources(ctx context.Context,name string,q sources.Query)([]domain.Job,
  if name=="programathor"{return programathor.NewClient().FetchJobs(ctx,q)}
  if name=="himalayas"{return himalayas.NewClient().FetchJobs(ctx,q)}
  if name!="all"{return nil,fmt.Errorf("unknown source %q",name)}
- if len(q.BoardTokens)==0&&len(q.LeverSites)==0{j1,e1:=remoteok.NewClient().FetchJobs(ctx,q);j2,e2:=remotive.NewClient().FetchJobs(ctx,q);j3,e3:=programathor.NewClient().FetchJobs(ctx,q);j4,e4:=himalayas.NewClient().FetchJobs(ctx,q);errs:=[]error{e1,e2,e3,e4};failed:=0;for _,e:=range errs{if e!=nil{failed++}};if failed==4{return nil,fmt.Errorf("remote/brazil sources failed: %v; %v; %v; %v",e1,e2,e3,e4)};return append(append(append(j1,j2...),j3...),j4...),nil}
- all:=[]domain.Job{};errs:=[]string{}
- if len(q.BoardTokens)>0{j,e:=greenhouse.NewClient().FetchJobs(ctx,q);all=append(all,j...);if e!=nil{errs=append(errs,"greenhouse: "+e.Error())}}
- if len(q.LeverSites)>0{j,e:=lever.NewClient().FetchJobs(ctx,q);all=append(all,j...);if e!=nil{errs=append(errs,"lever: "+e.Error())}}
- j,e:=remoteok.NewClient().FetchJobs(ctx,q);all=append(all,j...);if e!=nil{errs=append(errs,"remoteok: "+e.Error())}
- j,e=remotive.NewClient().FetchJobs(ctx,q);all=append(all,j...);if e!=nil{errs=append(errs,"remotive: "+e.Error())}
- j,e=programathor.NewClient().FetchJobs(ctx,q);all=append(all,j...);if e!=nil{errs=append(errs,"programathor: "+e.Error())}
- j,e=himalayas.NewClient().FetchJobs(ctx,q);all=append(all,j...);if e!=nil{errs=append(errs,"himalayas: "+e.Error())}
- if len(errs)>0{return all,errors.New(strings.Join(errs,"; "))}
- return all,nil
+
+ results:=[]sourceResult{}
+ if len(q.BoardTokens)>0 {
+  j,e:=greenhouse.NewClient().FetchJobs(ctx,q)
+  results=append(results,sourceResult{jobs:j,err:e})
+ }
+ if len(q.LeverSites)>0 {
+  j,e:=lever.NewClient().FetchJobs(ctx,q)
+  results=append(results,sourceResult{jobs:j,err:e})
+ }
+ j,e:=remoteok.NewClient().FetchJobs(ctx,q);results=append(results,sourceResult{jobs:j,err:e})
+ j,e=remotive.NewClient().FetchJobs(ctx,q);results=append(results,sourceResult{jobs:j,err:e})
+ j,e=programathor.NewClient().FetchJobs(ctx,q);results=append(results,sourceResult{jobs:j,err:e})
+ j,e=himalayas.NewClient().FetchJobs(ctx,q);results=append(results,sourceResult{jobs:j,err:e})
+
+ jobs,err:=mergeSourceResults(results...)
+ if err!=nil && len(jobs)>0{return jobs,err}
+ return jobs,err
 }
+
 func splitEnv(key string)[]string{v:=strings.TrimSpace(os.Getenv(key));if v==""{return nil};return strings.Split(v,",")}
 func isWithinDays(j domain.Job, days int) bool { if days <= 0 { return true }; var newest time.Time; for _, stamp := range []string{j.UpdatedAt, j.PostedAt} { if parsed := parseJobTime(stamp); !parsed.IsZero() && parsed.After(newest) { newest = parsed } }; if newest.IsZero() { return true }; cutoff := time.Now().Add(-time.Duration(days)*24*time.Hour); return !newest.Before(cutoff) }
 
