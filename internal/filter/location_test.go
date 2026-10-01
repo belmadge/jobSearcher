@@ -10,7 +10,7 @@ func TestClassifyLocation(t *testing.T) {
 		{"remote eligible broad", "Remote", "Worldwide", "", "approved"},
 		{"remote Brazil", "Remote", "Remote - Brazil", "", "approved"},
 		{"remote Portuguese with office base", "", "Remoto; IFOOD - BASE OSASCO, Osasco - SP", "", "approved"},
-		{"remote Portuguese Brazil with office base", "", "Remoto; IFOOD - BASE OSASCO, Osasco - SP", "Trabalho remoto no Brasil", "", "approved"},
+		{"remote Portuguese Brazil with office base", "", "Remoto; IFOOD - BASE OSASCO, Osasco - SP", "Trabalho remoto no Brasil", "approved"},
 		{"remote LATAM", "Remote", "Remote - LATAM", "", "approved"},
 		{"hybrid Portuguese Maceio", "Híbrido", "Maceió, Alagoas", "", "rejected_location"},
 		{"US only", "Remote", "Remote - US only", "", "rejected_location"},
