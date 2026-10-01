@@ -12,14 +12,18 @@ type SearchProfile struct {
 	ExpandedRoles  []string
 	Skills         []string
 	ExpandedSkills []string
+	DiscoveryTerms []string
 }
 
 func BuildSearchProfile(p config.Profile) SearchProfile {
 	roles := uniqueNormalized(p.Titles)
 	skills := uniqueNormalized(p.Technologies)
+	expandedRoles := expandRoles(roles)
+	expandedSkills := expandSkills(skills)
 	return SearchProfile{
-		Roles: roles, ExpandedRoles: expandRoles(roles),
-		Skills: skills, ExpandedSkills: expandSkills(skills),
+		Roles: roles, ExpandedRoles: expandedRoles,
+		Skills: skills, ExpandedSkills: expandedSkills,
+		DiscoveryTerms: discoveryTerms(roles, expandedRoles, skills, expandedSkills),
 	}
 }
 
@@ -48,6 +52,24 @@ var skillAliases = map[string][]string{
 	"api": {"api","apis","rest api","rest apis","web api","web apis"}, "rest": {"rest","restful","rest api","rest apis"},
 	"grpc": {"grpc","g rpc"}, "redis": {"redis"}, "python": {"python"}, "java": {"java"},
 	"ruby": {"ruby","ruby on rails","rails"},
+}
+
+const maxDiscoveryTerms = 12
+
+// discoveryTerms prioritizes explicit roles and role aliases because role terms
+// are the main retrieval signal. Skills fill the remaining budget instead of
+// multiplying source requests without bound.
+func discoveryTerms(roles, expandedRoles, skills, expandedSkills []string) []string {
+	out := make([]string, 0, maxDiscoveryTerms)
+	for _, group := range [][]string{roles, expandedRoles, skills, expandedSkills} {
+		for _, term := range group {
+			if len(out) >= maxDiscoveryTerms {
+				return out
+			}
+			out = appendUniqueText(out, term)
+		}
+	}
+	return out
 }
 
 func expandRoles(roles []string) []string {
