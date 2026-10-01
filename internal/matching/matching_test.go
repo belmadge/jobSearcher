@@ -217,6 +217,19 @@ func TestRequestedRoleAliases(t *testing.T) {
 			t.Fatalf("%q should match %q", tc.title, tc.requested)
 		}
 	}
+
+	moreCases := []struct{ requested, title string }{
+		{"Backend Developer", "API Engineer"},
+		{"Backend Engineer", "Server-side Engineer"},
+		{"DevOps Engineer", "Site Reliability Engineer"},
+		{"SRE", "Platform Engineer"},
+		{"Data Engineer", "Analytics Engineer"},
+	}
+	for _, tc := range moreCases {
+		if !IsRelevant(domain.Job{Title: tc.title}, tc.requested) {
+			t.Fatalf("%q should match %q", tc.title, tc.requested)
+		}
+	}
 }
 
 
