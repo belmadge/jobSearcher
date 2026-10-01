@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
 	"jobsearcher/internal/domain"
+	"jobsearcher/internal/sources"
 )
 
 func TestIsFreshUsesUpdatedDate(t *testing.T) {
@@ -217,5 +219,20 @@ func TestSanitizeJobsPreservesExplicitIdentity(t *testing.T) {
 	got := sanitizeJobs([]domain.Job{job})
 	if len(got) != 1 || got[0].ID != job.ID || got[0].ApplyURL != job.ApplyURL {
 		t.Fatalf("expected explicit identity to remain unchanged, got %+v", got)
+	}
+}
+
+func TestFetchSourcesMockStillReturnsNormalizedJobs(t *testing.T) {
+	jobs, err := fetchSources(context.Background(), "mock", sources.Query{})
+	if err != nil {
+		t.Fatalf("expected mock source to succeed, got %v", err)
+	}
+	if len(jobs) == 0 {
+		t.Fatal("expected mock source jobs")
+	}
+	for _, job := range jobs {
+		if job.Source == "" || job.Title == "" || job.URL == "" || job.ID == "" {
+			t.Fatalf("expected normalized mock job, got %+v", job)
+		}
 	}
 }
