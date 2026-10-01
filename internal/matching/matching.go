@@ -236,26 +236,32 @@ func ScoreForRoles(j *domain.Job, p config.Profile, requestedRoles []string) {
 	} else {
 		j.TechnicalMatch = blendRoleAndSkills(roleMatch, skillMatch, baseTechnical)
 	}
-	respTerms := []string{"backend", "api", "service", "distributed systems", "integration"}
-	j.ResponsibilityMatch = categoryCoverage(all, respTerms)
+	j.ResponsibilityMatch = responsibilityMatchScore(all, requestedRoles, p.Technologies)
 	cloudTerms := []string{"aws", "cloud", "kubernetes", "docker", "terraform", "infrastructure"}
 	j.CloudMatch = categoryCoverage(all, cloudTerms)
 	j.DomainMatch = neutralCoverage(all, p.Domains)
 	j.LanguageMatch = neutralCoverage(all, []string{"english"})
 	j.AIMatch = neutralCoverage(all, p.EmergingSkills)
 	j.SeniorityMatch, j.SeniorityReason = inferSeniority(*j)
+	if p.TargetSeniority != "" {
+		j.SeniorityMatch, j.SeniorityReason = seniorityFitForTarget(*j, p.TargetSeniority)
+	}
 	j.Seniority = seniorityLabel(j.SeniorityMatch, j.SeniorityReason)
 	w := p.Weights
 	j.FitScore = clamp((j.TechnicalMatch*w.Technical+j.ResponsibilityMatch*w.Responsibility+j.SeniorityMatch*w.Seniority+j.CloudMatch*w.Cloud+j.DomainMatch*w.Domain+j.LanguageMatch*w.Language+j.AIMatch*w.AI)/100, 0, 100)
 	if j.SeniorityMatch <= 10 && j.FitScore > 59 { j.FitScore = 59 }
 	if j.SeniorityMatch == 55 && j.FitScore > 74 { j.FitScore = 74 }
 	jobText := strings.Join([]string{j.Title, j.Description, j.Requirements}, " ")
+	j.ExperienceMatch = experienceMatchScore(jobText, p)
 	for _, years := range requiredYears(jobText) {
 		if p.YearsExperience > 0 && years > p.YearsExperience { gap := fmt.Sprintf("%d+ years experience", years); j.MustHaveMissing = appendUnique(j.MustHaveMissing, gap); j.Reasons = append(j.Reasons, fmt.Sprintf("Experience gap: job asks %d+ years; profile has about %d years", years, p.YearsExperience)) }
 	}
 	for tech, years := range requiredTechnologyYears(jobText) {
 		available := profileTechnologyYears(p, tech)
 		if available > 0 && years > available { gap := fmt.Sprintf("%d+ years %s", years, tech); j.MustHaveMissing = appendUnique(j.MustHaveMissing, gap); j.Reasons = append(j.Reasons, fmt.Sprintf("Experience gap: job asks %d+ years %s; profile has about %d years", years, tech, available)) }
+	}
+	if j.ExperienceMatch < 100 && (len(requiredYears(jobText)) > 0 || len(requiredTechnologyYears(jobText)) > 0) {
+		j.TechnicalMatch = clamp((j.TechnicalMatch*80+j.ExperienceMatch*20)/100, 0, 100)
 	}
 	if len(j.MustHaveMissing) > 0 {
 		j.TechnicalMatch = clamp(j.TechnicalMatch-len(j.MustHaveMissing)*10, 0, 100)
@@ -270,6 +276,76 @@ func ScoreForRoles(j *domain.Job, p config.Profile, requestedRoles []string) {
 	if len(j.NiceToHaveMatch) > 0 { j.Reasons = append(j.Reasons, "Preferred skills found: "+strings.Join(j.NiceToHaveMatch, ", ")) }
 	if j.ResponsibilityMatch >= 40 { j.Reasons = append(j.Reasons, "Backend/API responsibilities are present") }
 }
+
+
+func responsibilityMatchScore(text string, requestedRoles, skills []string) int {
+	terms := []string{}
+	for _, role := range requestedRoles {
+		r := normalizeRoleText(role)
+		switch {
+		case strings.Contains(r, "backend"), strings.Contains(r, "software"):
+			terms = appendUnique(terms, "api"); terms = appendUnique(terms, "service"); terms = appendUnique(terms, "backend"); terms = appendUnique(terms, "microservice"); terms = appendUnique(terms, "distributed systems")
+		case r == "qa" || strings.Contains(r, "quality assurance") || strings.Contains(r, "test"):
+			terms = appendUnique(terms, "testing"); terms = appendUnique(terms, "automation"); terms = appendUnique(terms, "quality"); terms = appendUnique(terms, "test")
+		case strings.Contains(r, "devops"), strings.Contains(r, "sre"), strings.Contains(r, "platform"):
+			terms = appendUnique(terms, "deployment"); terms = appendUnique(terms, "infrastructure"); terms = appendUnique(terms, "ci/cd"); terms = appendUnique(terms, "monitoring"); terms = appendUnique(terms, "reliability")
+		case strings.Contains(r, "data"):
+			terms = appendUnique(terms, "data"); terms = appendUnique(terms, "pipeline"); terms = appendUnique(terms, "etl"); terms = appendUnique(terms, "warehouse")
+		}
+	}
+	if len(terms) == 0 && len(skills) > 0 { terms = []string{"api", "service", "backend"} }
+	if len(terms) == 0 { return 50 }
+	return categoryCoverage(text, terms)
+}
+
+func seniorityFitForTarget(j domain.Job, target string) (int, string) {
+	target = normalizeRoleText(target)
+	jobScore, reason := inferSeniority(j)
+	switch {
+	case strings.Contains(target, "junior"), strings.Contains(target, "entry"):
+		if jobScore >= 90 { return 100, "Junior/entry target; seniority is directly aligned" }
+		if jobScore >= 80 { return 85, "Junior/entry target; mid-level role is compatible" }
+		if jobScore == 55 { return 55, "Junior/entry target; senior role is above target" }
+		return 20, "Junior/entry target; leadership/staff role is well above target"
+	case strings.Contains(target, "mid"), strings.Contains(target, "pleno"), strings.Contains(target, "intermediate"):
+		if jobScore >= 90 { return 90, "Mid-level target; junior/entry role is compatible" }
+		if jobScore >= 80 { return 100, "Mid-level target; role is directly aligned" }
+		if jobScore == 55 { return 75, "Mid-level target; senior role is above target" }
+		return 30, "Mid-level target; leadership/staff role is above target"
+	case strings.Contains(target, "senior"):
+		if jobScore == 55 { return 100, "Senior target; role is directly aligned" }
+		if jobScore == 78 { return 90, "Senior target; Engineer II role is compatible" }
+		if jobScore >= 80 { return 80, "Senior target; role is below target" }
+		return 70, reason
+	case strings.Contains(target, "staff"), strings.Contains(target, "lead"):
+		if jobScore <= 10 { return 100, "Staff/lead target; leadership level is directly aligned" }
+		if jobScore == 55 { return 85, "Staff/lead target; senior role is below target" }
+		return 60, "Staff/lead target; role is below target"
+	}
+	return jobScore, reason
+}
+
+func experienceMatchScore(text string, p config.Profile) int {
+	years := requiredYears(text)
+	techYears := requiredTechnologyYears(text)
+	if len(years) == 0 && len(techYears) == 0 { return 70 }
+	if p.YearsExperience <= 0 { return 50 }
+	score := 100
+	for _, required := range years {
+		if required > p.YearsExperience { score = minScore(score, experienceGapScore(required-p.YearsExperience)) }
+	}
+	for tech, required := range techYears {
+		available := profileTechnologyYears(p, tech)
+		if available > 0 && required > available { score = minScore(score, experienceGapScore(required-available)) }
+	}
+	return score
+}
+
+func experienceGapScore(gap int) int {
+	switch { case gap <= 0: return 100; case gap == 1: return 80; case gap == 2: return 60; case gap == 3: return 40; default: return 20 }
+}
+
+func minScore(a, b int) int { if a < b { return a }; return b }
 
 func roleMatchScore(j *domain.Job, requestedRoles []string) int {
 	if len(requestedRoles) == 0 { return 50 }
