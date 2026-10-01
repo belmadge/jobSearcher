@@ -1,4 +1,9 @@
 .env
+*.db
+*.sqlite
+*.sqlite3
+reports/*
+!.gitkeep
 .gocache/
 *.exe
 *.test
