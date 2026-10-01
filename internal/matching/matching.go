@@ -209,7 +209,7 @@ func matchesRequestedRole(j domain.Job, requestedRoles []string) bool {
 }
 
 func matchesBackendRoleTitle(title string) bool {
-	for _, candidate := range []string{"backend", "back end", "back-end", "api engineer", "api developer", "server-side developer", "server-side engineer"} {
+	for _, candidate := range []string{"backend", "back end", "api engineer", "api developer", "server side developer", "server side engineer"} {
 		if strings.Contains(title, candidate) { return true }
 	}
 	return false
