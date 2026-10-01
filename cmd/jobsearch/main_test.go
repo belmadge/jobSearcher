@@ -236,3 +236,23 @@ func TestFetchSourcesMockStillReturnsNormalizedJobs(t *testing.T) {
 		}
 	}
 }
+
+func TestValidWebSeniority(t *testing.T) {
+	tests := []struct {
+		value string
+		want  bool
+	}{
+		{"junior", true},
+		{"mid", true},
+		{"senior", true},
+		{"staff", true},
+		{"", false},
+		{"Senior", false},
+		{"lead", false},
+	}
+	for _, tt := range tests {
+		if got := validWebSeniority(tt.value); got != tt.want {
+			t.Fatalf("validWebSeniority(%q) = %v, want %v", tt.value, got, tt.want)
+		}
+	}
+}
