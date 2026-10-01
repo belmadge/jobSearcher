@@ -2,6 +2,7 @@ package himalayas
 
 import (
 	"context"
+	"errors"
 	"encoding/json"
 	"bytes"
 	"fmt"
