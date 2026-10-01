@@ -224,6 +224,7 @@ func TestRequestedRoleAliases(t *testing.T) {
 
 func TestRoleAndSkillMatchScores(t *testing.T) {
 	p := profile()
+	p.Technologies = []string{"Go", "PostgreSQL", "AWS", "Docker"}
 	exact := domain.Job{Title: "Backend Developer", Description: "Go PostgreSQL AWS Docker"}
 	alias := domain.Job{Title: "API Engineer", Description: "Go PostgreSQL"}
 	ScoreForRoles(&exact, p, []string{"Backend Developer"})
