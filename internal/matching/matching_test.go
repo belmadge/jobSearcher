@@ -512,25 +512,25 @@ func TestRankingPenalizesMissingRequiredSkill(t *testing.T) {
 
 func TestRankingKeepsExplicitSeniorityFitRelevant(t *testing.T) {
 	p := profile()
-	p.TargetSeniority = "mid-level"
+	p.TargetSeniority = "senior"
 
-	mid := domain.Job{
-		Title:       "Backend Engineer",
-		Description: "Backend APIs with Go and PostgreSQL.",
-	}
 	senior := domain.Job{
 		Title:       "Senior Backend Engineer",
 		Description: "Backend APIs with Go and PostgreSQL.",
 	}
-
-	ScoreForRoles(&mid, p, []string{"Backend Engineer"})
-	ScoreForRoles(&senior, p, []string{"Backend Engineer"})
-
-	if mid.SeniorityMatch <= senior.SeniorityMatch {
-		t.Fatalf("target seniority should prefer the aligned role: mid=%d senior=%d", mid.SeniorityMatch, senior.SeniorityMatch)
+	junior := domain.Job{
+		Title:       "Junior Backend Engineer",
+		Description: "Backend APIs with Go and PostgreSQL.",
 	}
-	if !BetterMatch(mid, senior) {
-		t.Fatalf("role aligned with requested seniority should rank above the less-aligned role: mid=%d senior=%d", mid.FitScore, senior.FitScore)
+
+	ScoreForRoles(&senior, p, []string{"Backend Engineer"})
+	ScoreForRoles(&junior, p, []string{"Backend Engineer"})
+
+	if senior.SeniorityMatch <= junior.SeniorityMatch {
+		t.Fatalf("target seniority should prefer the aligned role: senior=%d junior=%d", senior.SeniorityMatch, junior.SeniorityMatch)
+	}
+	if !BetterMatch(senior, junior) {
+		t.Fatalf("role aligned with requested seniority should rank above the less-aligned role: senior=%d junior=%d", senior.FitScore, junior.FitScore)
 	}
 }
 
