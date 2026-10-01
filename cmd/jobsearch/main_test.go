@@ -151,9 +151,9 @@ func TestWebJobEligibleRejectsOutOfTargetSeniority(t *testing.T) {
 
 func TestMergeSourceResultsKeepsSuccessfulSourcesWhenOneFails(t *testing.T) {
 	jobs, err := mergeSourceResults(
-		sourceResult{jobs: []domain.Job{{Source: "remoteok", Title: "Backend Engineer"}}},
+		sourceResult{jobs: []domain.Job{{Source: "remoteok", Title: "Backend Engineer", URL: "https://example.com/remote"}}},
 		sourceResult{err: errors.New("remotive unavailable")},
-		sourceResult{jobs: []domain.Job{{Source: "himalayas", Title: "Go Engineer"}}},
+		sourceResult{jobs: []domain.Job{{Source: "himalayas", Title: "Go Engineer", URL: "https://example.com/go"}}},
 	)
 	if err == nil {
 		t.Fatal("expected partial failure to be reported")
@@ -178,13 +178,44 @@ func TestMergeSourceResultsFailsWhenAllSourcesFail(t *testing.T) {
 
 func TestMergeSourceResultsReturnsJobsWithoutErrorWhenAllSucceed(t *testing.T) {
 	jobs, err := mergeSourceResults(
-		sourceResult{jobs: []domain.Job{{Source: "remoteok"}}},
-		sourceResult{jobs: []domain.Job{{Source: "remotive"}}},
+		sourceResult{jobs: []domain.Job{{Source: "remoteok", Title: "A", URL: "https://example.com/a"}}},
+		sourceResult{jobs: []domain.Job{{Source: "remotive", Title: "B", URL: "https://example.com/b"}}},
 	)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(jobs) != 2 {
 		t.Fatalf("expected 2 jobs, got %d", len(jobs))
+	}
+}
+
+func TestSanitizeJobsRejectsIncompleteAndFillsIdentity(t *testing.T) {
+	jobs := []domain.Job{
+		{Source: "remoteok", Title: "Backend Engineer", ApplyURL: "https://example.com/job/1"},
+		{Source: "remoteok", URL: "https://example.com/job/2"},
+		{Source: "", Title: "Missing Source", URL: "https://example.com/job/3"},
+		{Source: "remoteok", Title: "Duplicate", URL: "https://example.com/job/1"},
+	}
+	got := sanitizeJobs(jobs)
+	if len(got) != 1 {
+		t.Fatalf("expected one valid unique job, got %d: %+v", len(got), got)
+	}
+	if got[0].URL != got[0].ApplyURL || got[0].ID == "" || got[0].CanonicalURL == "" {
+		t.Fatalf("expected normalized URL and generated identity, got %+v", got[0])
+	}
+}
+
+func TestSanitizeJobsPreservesExplicitIdentity(t *testing.T) {
+	job := domain.Job{
+		ID: "remoteok:42",
+		Source: "remoteok",
+		Title: "Backend Engineer",
+		URL: "https://example.com/jobs/42",
+		ApplyURL: "https://example.com/jobs/42/apply",
+		CanonicalURL: "https://example.com/jobs/42",
+	}
+	got := sanitizeJobs([]domain.Job{job})
+	if len(got) != 1 || got[0].ID != job.ID || got[0].ApplyURL != job.ApplyURL {
+		t.Fatalf("expected explicit identity to remain unchanged, got %+v", got)
 	}
 }
