@@ -39,6 +39,7 @@ type Job struct {
 	LocationEligible LocationEligibility `json:"location_eligible"`
 	LocationReason string `json:"location_reason,omitempty"`
 	RecommendationStatus RecommendationStatus `json:"recommendation_status"`
+	MatchBucket string `json:"match_bucket"`
 	Status string `json:"status"`
 	FitScore int `json:"fit_score"`
 	RoleMatch int `json:"role_match"`
