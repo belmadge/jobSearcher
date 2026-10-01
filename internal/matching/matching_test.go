@@ -235,6 +235,30 @@ func TestRequestedRoleAliases(t *testing.T) {
 
 
 
+
+func TestExplicitRequestedRoleOverridesGenericExclusion(t *testing.T) {
+	cases := []struct {
+		requested string
+		title     string
+	}{
+		{"Data Engineer", "Data Engineer"},
+		{"Java Developer", "Java Developer"},
+		{"QA", "QA Engineer"},
+	}
+	for _, tc := range cases {
+		if !IsRelevant(domain.Job{Title: tc.title}, tc.requested) {
+			t.Fatalf("%q should be searchable when explicitly requested as %q", tc.title, tc.requested)
+		}
+	}
+}
+
+func TestGenericSearchStillRejectsSpecializedRoles(t *testing.T) {
+	for _, title := range []string{"Data Engineer", "Java Developer", "QA Engineer"} {
+		if IsRelevant(domain.Job{Title: title}) {
+			t.Fatalf("generic search should still reject specialized role: %s", title)
+		}
+	}
+}
 func TestRoleAndSkillMatchScores(t *testing.T) {
 	p := profile()
 	p.Technologies = []string{"Go", "PostgreSQL", "AWS", "Docker"}
