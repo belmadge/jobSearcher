@@ -43,6 +43,7 @@ type Job struct {
 	FitScore int `json:"fit_score"`
 	RoleMatch int `json:"role_match"`
 	SkillMatch int `json:"skill_match"`
+	RelatedSkillMatch int `json:"related_skill_match"`
 	TechnicalMatch int `json:"technical_match"`
 	ResponsibilityMatch int `json:"responsibility_match"`
 	ExperienceMatch int `json:"experience_match"`
