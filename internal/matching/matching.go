@@ -119,12 +119,10 @@ var irrelevantTitleTerms = []string{
 
 func IsRelevant(j domain.Job, requestedRoles ...string) bool {
 	title := strings.ToLower(strings.TrimSpace(j.Title))
-	qaRequested := requestedRoleIncludesQA(requestedRoles)
-	for _, term := range irrelevantTitleTerms {
-		if qaRequested && isQATitleExclusion(term) { continue }
-		if strings.Contains(title, term) { return false }
-	}
 	if len(requestedRoles) > 0 {
+		// An explicit role search is authoritative. Evaluate the requested
+		// role before generic exclusions so specialized roles can be searched
+		// intentionally (for example Data Engineer or Java Developer).
 		return matchesRequestedRole(j, requestedRoles)
 	}
 	if strings.Contains(title, "analista") || strings.Contains(title, "supervisor") || strings.Contains(title, "especialista") {
