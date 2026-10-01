@@ -209,6 +209,28 @@ func normalizeRoleText(s string) string {
 }
 
 // Score applies the existing technology, responsibility and seniority scoring.
+type MatchBucket string
+
+const (
+	StrongMatch      MatchBucket = "strong"
+	CompatibleMatch  MatchBucket = "compatible"
+	PossibleMatch    MatchBucket = "possible"
+	LowMatch         MatchBucket = "low"
+)
+
+func matchBucket(score int) MatchBucket {
+	switch {
+	case score >= 75:
+		return StrongMatch
+	case score >= 60:
+		return CompatibleMatch
+	case score >= 40:
+		return PossibleMatch
+	default:
+		return LowMatch
+	}
+}
+
 func Score(j *domain.Job, p config.Profile) {
 	ScoreForRoles(j, p, nil)
 }
@@ -274,6 +296,8 @@ func ScoreForRoles(j *domain.Job, p config.Profile, requestedRoles []string) {
 	if len(matched) > 0 { j.Reasons = append(j.Reasons, "Profile technology overlap: "+strings.Join(matched, ", ")) }
 	if len(j.MustHaveMatch) > 0 { j.Reasons = append(j.Reasons, "Required skills found: "+strings.Join(j.MustHaveMatch, ", ")) }
 	if len(j.MustHaveMissing) > 0 { j.Reasons = append(j.Reasons, "Required skills missing: "+strings.Join(j.MustHaveMissing, ", ")) }
+	// Keep the bucket synchronized with the final FitScore after all penalties are applied.
+	j.MatchBucket = string(matchBucket(j.FitScore))
 	if len(j.NiceToHaveMatch) > 0 { j.Reasons = append(j.Reasons, "Preferred skills found: "+strings.Join(j.NiceToHaveMatch, ", ")) }
 	if j.ResponsibilityMatch >= 40 { j.Reasons = append(j.Reasons, "Backend/API responsibilities are present") }
 }
