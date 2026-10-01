@@ -27,3 +27,28 @@ func TestFetchJobs(t *testing.T) {
 		t.Fatalf("unexpected jobs: %+v", jobs)
 	}
 }
+
+func TestFetchJobsKeepsSuccessfulTermsOnPartialFailure(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Query().Get("q") {
+		case "good":
+			_, _ = w.Write([]byte(`{"jobs":[{"guid":"good-1","title":"Backend Engineer","companyName":"Acme","description":"Go backend","applicationLink":"https://example.com/good"}]}`))
+		case "bad":
+			http.Error(w, "temporary failure", http.StatusBadGateway)
+		default:
+			_, _ = w.Write([]byte(`{"jobs":[]}`))
+		}
+	}))
+	defer srv.Close()
+
+	c := NewClient()
+	c.URL = srv.URL
+	jobs, err := c.FetchJobs(context.Background(), sources.Query{Terms: []string{"good", "bad"}})
+	if err == nil {
+		t.Fatal("expected partial failure error")
+	}
+	if len(jobs) != 1 || jobs[0].ID != "himalayas:good-1" {
+		t.Fatalf("expected successful term to be preserved, got %+v", jobs)
+	}
+}
