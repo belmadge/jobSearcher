@@ -63,6 +63,31 @@ func runSearch(ctx context.Context,profile config.Profile,search config.Search,b
  data,err:=json.MarshalIndent(map[string]any{"generated_at":time.Now().UTC().Format(time.RFC3339),"jobs":accepted,"senior":senior,"archived":archived,"uncertain":uncertain},"","  ");if err!=nil{return err};if err:=os.WriteFile(filepath.Join("reports",now+".json"),data,0644);err!=nil{return err}
  fmt.Printf("Vagas encontradas: %d\nElegíveis: %d\nSenior ≥60: %d\nAntigas elegíveis: %d\nIncertas: %d\nRejeitadas por localização: %d\nFora do perfil: %d\nSenioridade fora do alvo: %d\nAbaixo do score mínimo: %d\nAntigas fora da janela: %d\n",found,len(accepted),len(senior),len(archived),len(uncertain),rejected,irrelevant,outsideSeniority,lowFit,stale);for _,j:=range accepted{fmt.Printf("%3d  %-45s  %s  %s\n",j.FitScore,j.Title,j.Company,j.URL)};return nil
 }
+type sourceResult struct {
+	jobs []domain.Job
+	err  error
+}
+
+func mergeSourceResults(results ...sourceResult) ([]domain.Job, error) {
+	all := []domain.Job{}
+	errs := []string{}
+	failed := 0
+	for _, result := range results {
+		all = append(all, result.jobs...)
+		if result.err != nil {
+			failed++
+			errs = append(errs, result.err.Error())
+		}
+	}
+	if failed == len(results) && len(results) > 0 {
+		return nil, errors.New(strings.Join(errs, "; "))
+	}
+	if len(errs) > 0 {
+		return all, errors.New(strings.Join(errs, "; "))
+	}
+	return all, nil
+}
+
 func fetchSources(ctx context.Context,name string,q sources.Query)([]domain.Job,error){
  if name=="mock"{return (sources.Mock{}).FetchJobs(ctx,q)}
  if name=="greenhouse"{if len(q.BoardTokens)==0{return nil,errors.New("no Greenhouse boards configured; add enabled boards to config/boards.json or set GREENHOUSE_BOARD_TOKENS")};return greenhouse.NewClient().FetchJobs(ctx,q)}
