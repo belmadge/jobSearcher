@@ -50,11 +50,11 @@ h1{font-size:clamp(2.8rem,5vw,4.4rem);line-height:.96;letter-spacing:-.065em;mar
 <header class="nav"><div class="brand"><div class="logo">JS</div><span>JobSearcher</span></div><div class="nav-meta"><span>◉ &nbsp;100% Remoto</span><i class="divider"></i><span>✣ &nbsp;Várias fontes</span><i class="divider"></i><span>♢ &nbsp;Sem currículo</span></div></header>
 <section class="hero"><div class="hero-copy"><div class="eyebrow">VAGAS REMOTAS PARA A SUA CARREIRA</div><h1>Encontre vagas que<br><span>combinam com você.</span></h1><p class="hero-desc">Pesquise oportunidades remotas em várias fontes e veja de forma transparente por que cada vaga combina com o seu perfil — sem enviar ou armazenar seu currículo.</p></div>
 <div class="scene" aria-hidden="true"><div class="glow"></div><div class="laptop"><div class="screen"></div></div><div class="mug"></div><div class="books"></div><div class="plant"><div class="stem"></div><div class="leaf"></div><div class="leaf"></div><div class="leaf"></div><div class="leaf"></div><div class="leaf"></div><div class="pot"></div></div></div>
-<div class="search-panel"><form method="post"><div class="form-grid">
-<div class="field"><label for="roles"><span class="field-icon">▣</span> Cargo / área</label><input id="roles" name="roles" placeholder="Backend Developer, Software Engineer" value="{{.Roles}}"></div>
-<div class="field"><label for="skills"><span class="field-icon">&lt;/&gt;</span> Skills</label><input id="skills" name="skills" placeholder="Go, AWS, PostgreSQL, Docker" value="{{.Skills}}"></div>
-<div class="field"><label for="seniority"><span class="field-icon">▥</span> Senioridade</label><select id="seniority" name="seniority"><option value="junior" {{if eq .Seniority "junior"}}selected{{end}}>Júnior</option><option value="mid" {{if eq .Seniority "mid"}}selected{{end}}>Pleno</option><option value="senior" {{if eq .Seniority "senior"}}selected{{end}}>Sênior</option><option value="staff" {{if eq .Seniority "staff"}}selected{{end}}>Staff / Lead</option></select></div>
-<div class="field"><label for="experience"><span class="field-icon">♙</span> Anos de experiência</label><input id="experience" type="number" min="0" name="experience" value="{{.Experience}}"></div>
+<div class="search-panel"><form method="post" autocomplete="off"><div class="form-grid">
+<div class="field"><label for="roles"><span class="field-icon">▣</span> Cargo / área</label><input id="roles" name="roles" autocomplete="off" placeholder="Backend Developer, Software Engineer" value="{{.Roles}}"></div>
+<div class="field"><label for="skills"><span class="field-icon">&lt;/&gt;</span> Skills</label><input id="skills" name="skills" autocomplete="off" placeholder="Go, AWS, PostgreSQL, Docker" value="{{.Skills}}"></div>
+<div class="field"><label for="seniority"><span class="field-icon">▥</span> Senioridade</label><select id="seniority" name="seniority" autocomplete="off"><option value="" {{if eq .Seniority ""}}selected{{end}}>Selecione</option><option value="junior" {{if eq .Seniority "junior"}}selected{{end}}>Júnior</option><option value="mid" {{if eq .Seniority "mid"}}selected{{end}}>Pleno</option><option value="senior" {{if eq .Seniority "senior"}}selected{{end}}>Sênior</option><option value="staff" {{if eq .Seniority "staff"}}selected{{end}}>Staff / Lead</option></select></div>
+<div class="field"><label for="experience"><span class="field-icon">♙</span> Anos de experiência</label><input id="experience" type="number" min="0" name="experience" autocomplete="off" placeholder="Ex.: 3" value="{{.Experience}}"></div>
 <div class="field"><button class="search-button" id="searchButton" type="submit">⌕ &nbsp;Buscar vagas&nbsp; →</button></div>
 </div>{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}<div class="remote-row"><span class="toggle"><i></i></span><span>Busca global — somente vagas 100% remotas</span></div></form></div>
 </section>
@@ -90,7 +90,7 @@ func startWebServer(ctx context.Context, boards config.Boards) error {
    http.Error(w,"método não permitido",http.StatusMethodNotAllowed)
    return
   }
-  v:=webView{Experience:"3",Seniority:"junior"}
+  v:=webView{}
   if r.Method==http.MethodPost {
    if err:=r.ParseForm(); err!=nil {v.Error="não foi possível ler os dados enviados"; renderWebPage(w,v); return}
    v.Roles=strings.TrimSpace(r.FormValue("roles")); v.Skills=strings.TrimSpace(r.FormValue("skills")); v.Experience=r.FormValue("experience"); v.Seniority=r.FormValue("seniority")
@@ -114,6 +114,7 @@ func startWebServer(ctx context.Context, boards config.Boards) error {
       v.Error="Não foi possível concluir a busca: "+err.Error()
      } else {
       v.Searched=true;v.Jobs=jobs;v.Count=len(jobs)
+      v.Roles="";v.Skills="";v.Experience="";v.Seniority=""
      }
     }
    }
