@@ -5,12 +5,10 @@ import (
  "fmt"
  "html/template"
  "net/http"
- "sort"
  "strconv"
  "strings"
 
  "jobsearcher/internal/config"
- "jobsearcher/internal/dedupe"
  "jobsearcher/internal/domain"
  "jobsearcher/internal/filter"
  "jobsearcher/internal/matching"
