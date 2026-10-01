@@ -218,6 +218,21 @@ O objetivo é ampliar a cobertura sem transformar o JobSearcher em um robô frá
 | Ver estatísticas | `go run ./cmd/jobsearch stats` |
 | Ver ajuda | `go run ./cmd/jobsearch help` |
 
+## Open source e segurança
+
+O projeto é preparado para uso e colaboração open source:
+
+- não exige upload de currículo ou login na interface web;
+- não precisa armazenar dados pessoais para fazer o matching;
+- segredos, tokens, bancos locais e relatórios gerados ficam fora do controle de versão;
+- dependências Go são acompanhadas pelo Dependabot;
+- testes são executados automaticamente no GitHub Actions;
+- contribuições devem seguir o `CONTRIBUTING.md`;
+- vulnerabilidades devem ser reportadas seguindo o `SECURITY.md`;
+- licença: MIT.
+
+Nunca coloque credenciais, cookies, tokens ou dados pessoais em commits.
+
 ## Importante
 
 O JobSearcher é uma ferramenta de pesquisa e triagem. Ele **não se candidata automaticamente às vagas** e **não envia mensagens para recrutadores**.
