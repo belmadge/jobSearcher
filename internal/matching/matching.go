@@ -298,6 +298,7 @@ func ScoreForRoles(j *domain.Job, p config.Profile, requestedRoles []string) {
 	if len(j.MustHaveMissing) > 0 { j.Reasons = append(j.Reasons, "Required skills missing: "+strings.Join(j.MustHaveMissing, ", ")) }
 	// Keep the bucket synchronized with the final FitScore after all penalties are applied.
 	j.MatchBucket = string(matchBucket(j.FitScore))
+	j.MatchHighlights = buildMatchHighlights(*j, matched)
 	if len(j.NiceToHaveMatch) > 0 { j.Reasons = append(j.Reasons, "Preferred skills found: "+strings.Join(j.NiceToHaveMatch, ", ")) }
 	if j.ResponsibilityMatch >= 40 { j.Reasons = append(j.Reasons, "Backend/API responsibilities are present") }
 }
@@ -502,3 +503,37 @@ func containsAny(text string, terms ...string) bool { for _, term := range terms
 func termCoverage(text string, terms []string) int { if len(terms) == 0 { return 0 }; hits:=0; for _,term:=range terms {if mentions(text,term){hits++}}; return hits*100/len(terms) }
 func categoryCoverage(text string, terms []string) int { if len(terms)==0{return 50}; coverage:=termCoverage(text,terms);if coverage==0{return 50};return 50+coverage/2 }
 func neutralCoverage(text string, terms []string) int { if len(terms)==0{return 50};for _,term:=range terms{if mentions(text,term){return termCoverage(text,terms)}};return 50 }
+
+
+func buildMatchHighlights(j domain.Job, matched []string) []string {
+	highlights := []string{}
+	if j.RoleMatch >= 85 {
+		highlights = append(highlights, fmt.Sprintf("Cargo muito alinhado (%d%%)", j.RoleMatch))
+	} else if j.RoleMatch >= 60 {
+		highlights = append(highlights, fmt.Sprintf("Cargo compatível (%d%%)", j.RoleMatch))
+	}
+	if len(matched) > 0 {
+		highlights = append(highlights, "Skills encontradas: "+strings.Join(matched, ", "))
+	}
+	if j.RelatedSkillMatch >= 50 && j.SkillMatch < 100 {
+		highlights = append(highlights, fmt.Sprintf("Tecnologias relacionadas ajudam no match (%d%%)", j.RelatedSkillMatch))
+	}
+	if j.ResponsibilityMatch >= 75 {
+		highlights = append(highlights, fmt.Sprintf("Responsabilidades bem alinhadas (%d%%)", j.ResponsibilityMatch))
+	}
+	if j.SeniorityMatch >= 85 {
+		highlights = append(highlights, "Senioridade alinhada ao perfil")
+	} else if j.SeniorityMatch < 60 {
+		highlights = append(highlights, "Senioridade é um ponto de atenção")
+	}
+	if j.ExperienceMatch < 100 {
+		highlights = append(highlights, fmt.Sprintf("Experiência é um ponto de atenção (%d%%)", j.ExperienceMatch))
+	}
+	if len(j.MustHaveMissing) > 0 {
+		highlights = append(highlights, "Requisitos ausentes: "+strings.Join(j.MustHaveMissing, ", "))
+	}
+	if len(highlights) == 0 {
+		highlights = append(highlights, "Compatibilidade baseada nos critérios disponíveis da vaga")
+	}
+	return highlights
+}
