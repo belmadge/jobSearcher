@@ -258,3 +258,46 @@ func TestRoleMatchDoesNotRequireExactTitle(t *testing.T) {
 		t.Fatalf("compatible role should remain above minimum fit: %d", j.FitScore)
 	}
 }
+
+
+func TestResponsibilityMatchUsesRequestedRole(t *testing.T) {
+	p := profile()
+	j := domain.Job{Title: "Backend Developer", Description: "Build backend services, REST APIs and microservices"}
+	ScoreForRoles(&j, p, []string{"Backend Developer"})
+	if j.ResponsibilityMatch < 70 {
+		t.Fatalf("backend responsibilities should score meaningfully: %d", j.ResponsibilityMatch)
+	}
+}
+
+func TestExperienceMatchIsGraduated(t *testing.T) {
+	p := profile()
+	ok := domain.Job{Title: "Backend Engineer", Description: "Requires 5+ years of software engineering experience"}
+	Score(&ok, p)
+	if ok.ExperienceMatch != 100 {
+		t.Fatalf("matching experience should score 100, got %d", ok.ExperienceMatch)
+	}
+	gap := domain.Job{Title: "Backend Engineer", Description: "Requires 7+ years of software engineering experience"}
+	Score(&gap, p)
+	if gap.ExperienceMatch != 60 {
+		t.Fatalf("two-year experience gap should score 60, got %d", gap.ExperienceMatch)
+	}
+	if gap.ExperienceMatch >= ok.ExperienceMatch {
+		t.Fatal("experience gap should reduce experience match")
+	}
+}
+
+func TestTargetSeniorityChangesPreference(t *testing.T) {
+	p := profile()
+	p.TargetSeniority = "senior"
+	j := domain.Job{Title: "Senior Backend Engineer", Description: "Backend APIs with Go"}
+	Score(&j, p, )
+	if j.SeniorityMatch != 100 {
+		t.Fatalf("senior target should align with senior role: %d", j.SeniorityMatch)
+	}
+
+	p.TargetSeniority = "junior"
+	Score(&j, p)
+	if j.SeniorityMatch != 55 {
+		t.Fatalf("junior target should score senior role below target: %d", j.SeniorityMatch)
+	}
+}
