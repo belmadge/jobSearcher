@@ -19,7 +19,7 @@ const webPage = `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>JobSearcher</title>
 <style>
-body{font-family:system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0 20px;background:#f7f7f8;color:#202124}.card{background:white;border:1px solid #ddd;border-radius:14px;padding:24px;margin-bottom:18px}label{display:block;font-weight:600;margin:14px 0 6px}input,select{width:100%;box-sizing:border-box;padding:11px;border:1px solid #bbb;border-radius:8px}.filters{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:12px}.filters label{margin:0}.summary{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.summary .pill{font-size:13px}.job{border-top:1px solid #eee;padding:16px 0}.score{font-size:22px;font-weight:800}.muted{color:#666}.hidden{display:none}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#eee;font-size:12px;margin:2px}.pill.strong{background:#dff5e5}.pill.compatible{background:#e7f0ff}.pill.possible{background:#fff3d6}.pill.low{background:#f4dddd}
+body{font-family:system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0 20px;background:#f7f7f8;color:#202124}.card{background:white;border:1px solid #ddd;border-radius:14px;padding:24px;margin-bottom:18px}label{display:block;font-weight:600;margin:14px 0 6px}input,select{width:100%;box-sizing:border-box;padding:11px;border:1px solid #bbb;border-radius:8px}.filters{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:12px}.filters label{margin:0}.summary{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.summary .pill{font-size:13px}.job{border-top:1px solid #eee;padding:16px 0}.score{font-size:22px;font-weight:800}.muted{color:#666}.hidden{display:none}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#eee;font-size:12px;margin:2px}.error{background:#fff0f0;border:1px solid #e2a5a5;color:#8a1c1c;border-radius:8px;padding:10px;margin:14px 0}.pill.strong{background:#dff5e5}.pill.compatible{background:#e7f0ff}.pill.possible{background:#fff3d6}.pill.low{background:#f4dddd}
 @media(max-width:600px){body{margin:15px auto}.card{padding:18px}.score{font-size:18px}.filters{grid-template-columns:1fr}}
 </style></head><body>
 <div class="card"><h1>JobSearcher</h1><p>Encontre vagas compatíveis com seu perfil sem enviar ou armazenar seu currículo.</p>
@@ -29,7 +29,8 @@ body{font-family:system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0
 <label>Senioridade</label><select name="seniority"><option value="junior" {{if eq .Seniority "junior"}}selected{{end}}>Júnior</option><option value="mid" {{if eq .Seniority "mid"}}selected{{end}}>Pleno</option><option value="senior" {{if eq .Seniority "senior"}}selected{{end}}>Sênior</option><option value="staff" {{if eq .Seniority "staff"}}selected{{end}}>Staff / Lead</option></select>
 <label>Anos de experiência</label><input type="number" min="0" name="experience" value="{{.Experience}}">
 <p class="muted">🌎 Busca global — somente vagas 100% remotas.</p>
-<button type="submit">🔎 Buscar vagas</button></form></div>
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+<button id="searchButton" type="submit">🔎 Buscar vagas</button></form></div>
 {{if .Searched}}<div class="card"><h2>Resultados</h2><div class="summary"><span class="pill"><strong id="visibleCount">{{.Count}}</strong> visíveis</span><span class="pill">{{.Count}} elegíveis</span></div>
 <div class="filters">
 <label>Filtrar resultados<input id="jobFilter" type="search" placeholder="Cargo ou empresa"></label>
@@ -59,27 +60,68 @@ body{font-family:system-ui,sans-serif;max-width:900px;margin:40px auto;padding:0
  }
  [text,bucket,source].forEach(el=>el.addEventListener('input',apply));apply();
 })();
+const form=document.querySelector('form');
+ const button=document.getElementById('searchButton');
+ if(form&&button){form.addEventListener('submit',function(){button.disabled=true;button.textContent='⏳ Buscando vagas...';});}
 </script>{{end}}
 </body></html>`
 
-type webView struct { Roles, Skills, Experience, Seniority string; Searched bool; Count int; Jobs []domain.Job }
+type webView struct { Roles, Skills, Experience, Seniority, Error string; Searched bool; Count int; Jobs []domain.Job }
 
 func startWebServer(ctx context.Context, boards config.Boards) error {
  mux:=http.NewServeMux()
  mux.HandleFunc("/",func(w http.ResponseWriter,r *http.Request){
+  if r.Method != http.MethodGet && r.Method != http.MethodPost {
+   http.Error(w,"método não permitido",http.StatusMethodNotAllowed)
+   return
+  }
   v:=webView{Experience:"3",Seniority:"junior"}
   if r.Method==http.MethodPost {
-   _=r.ParseForm(); v.Roles=strings.TrimSpace(r.FormValue("roles")); v.Skills=strings.TrimSpace(r.FormValue("skills")); v.Experience=r.FormValue("experience"); v.Seniority=r.FormValue("seniority")
-   years,_:=strconv.Atoi(v.Experience); if years<0 {years=0}
-   roles:=csvValues(v.Roles); skills:=csvValues(v.Skills); if len(roles)==0 {http.Error(w,"informe pelo menos um cargo ou área",400);return}; if len(skills)==0 {http.Error(w,"informe pelo menos uma skill",400);return}
-   profile:=config.Profile{TargetSeniority:v.Seniority,Titles:roles,Technologies:skills,YearsExperience:years,Weights:config.Weights{Technical:35,Responsibility:15,Seniority:25,Cloud:10,Domain:7,Language:4,AI:4}}
-   search:=config.Search{Location:"",RemoteAllowed:[]string{"Worldwide"},PreferredTitles:roles,MinimumFitScore:55,FreshnessDays:7,ArchiveDays:30,MaxJobsPerSource:100}
-   jobs,err:=searchForWeb(ctx,profile,search,boards,roles); if err!=nil {http.Error(w,"erro ao buscar vagas: "+err.Error(),http.StatusBadGateway);return}; v.Searched=true;v.Jobs=jobs;v.Count=len(jobs)
+   if err:=r.ParseForm(); err!=nil {v.Error="não foi possível ler os dados enviados"; renderWebPage(w,v); return}
+   v.Roles=strings.TrimSpace(r.FormValue("roles")); v.Skills=strings.TrimSpace(r.FormValue("skills")); v.Experience=r.FormValue("experience"); v.Seniority=r.FormValue("seniority")
+   roles:=csvValues(v.Roles); skills:=csvValues(v.Skills)
+   switch {
+   case len(roles)==0:
+    v.Error="Informe pelo menos um cargo ou área."
+   case len(skills)==0:
+    v.Error="Informe pelo menos uma skill."
+   case !validWebSeniority(v.Seniority):
+    v.Error="Selecione uma senioridade válida."
+   default:
+    years,err:=strconv.Atoi(strings.TrimSpace(v.Experience))
+    if err!=nil || years<0 {
+     v.Error="Informe um número válido de anos de experiência."
+    } else {
+     profile:=config.Profile{TargetSeniority:v.Seniority,Titles:roles,Technologies:skills,YearsExperience:years,Weights:config.Weights{Technical:35,Responsibility:15,Seniority:25,Cloud:10,Domain:7,Language:4,AI:4}}
+     search:=config.Search{Location:"",RemoteAllowed:[]string{"Worldwide"},PreferredTitles:roles,MinimumFitScore:55,FreshnessDays:7,ArchiveDays:30,MaxJobsPerSource:100}
+     jobs,err:=searchForWeb(ctx,profile,search,boards,roles)
+     if err!=nil {
+      v.Error="Não foi possível concluir a busca: "+err.Error()
+     } else {
+      v.Searched=true;v.Jobs=jobs;v.Count=len(jobs)
+     }
+    }
+   }
   }
-  t,err:=template.New("page").Funcs(template.FuncMap{"join":func(v []string)string{return strings.Join(v,", ")}}).Parse(webPage);if err!=nil{http.Error(w,err.Error(),500);return};_=t.Execute(w,v)
+  renderWebPage(w,v)
  })
  fmt.Println("JobSearcher web: http://localhost:8080")
  return http.ListenAndServe(":8080",mux)
+}
+
+func renderWebPage(w http.ResponseWriter,v webView){
+ t,err:=template.New("page").Funcs(template.FuncMap{"join":func(v []string)string{return strings.Join(v,", ")}}).Parse(webPage)
+ if err!=nil {http.Error(w,err.Error(),http.StatusInternalServerError);return}
+ if err:=t.Execute(w,v);err!=nil {http.Error(w,err.Error(),http.StatusInternalServerError)}
+}
+
+func validWebSeniority(value string) bool {
+ switch value {
+ case "junior","mid","senior","staff":
+  return true
+ default:
+  return false
+ }
 }
 
 func searchForWeb(ctx context.Context,profile config.Profile,search config.Search,boards config.Boards,requestedRoles []string)([]domain.Job,error){
