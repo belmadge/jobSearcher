@@ -52,10 +52,9 @@ func runSearch(ctx context.Context,profile config.Profile,search config.Search,b
  }
  process(freshCandidates,false)
  process(archivedCandidates,true)
- accepted=dedupe.Jobs(accepted);senior=dedupe.Jobs(senior);archived=dedupe.Jobs(archived)
- sort.SliceStable(accepted,func(i,j int)bool{return matching.BetterMatch(accepted[i],accepted[j])})
- sort.SliceStable(senior,func(i,j int)bool{return matching.BetterMatch(senior[i],senior[j])})
- sort.SliceStable(archived,func(i,j int)bool{return matching.BetterMatch(archived[i],archived[j])})
+ accepted=rankAndDedupeJobs(accepted)
+ senior=rankAndDedupeJobs(senior)
+ archived=rankAndDedupeJobs(archived)
  accepted=limitJobsPerSource(accepted,search.MaxJobsPerSource)
  senior=limitJobsPerSource(senior,search.MaxJobsPerSource)
  archived=limitJobsPerSource(archived,search.MaxJobsPerSource)
@@ -120,6 +119,11 @@ func latestReport()error{entries,err:=os.ReadDir("reports");if err!=nil{return e
 func stats(ctx context.Context)error{repo,err:=sqlite.Open(filepath.Join("data","jobsearch.db"));if err!=nil{return err};defer repo.Close();s,err:=repo.GetStats(ctx);if err!=nil{return err};fmt.Printf("Total: %d\nNovas: %d\nVistas: %d\nAtualizadas: %d\nExpiradas: %d\nRecomendadas: %d\nPossíveis: %d\n",s.Total,s.New,s.Seen,s.Updated,s.Expired,s.Recommended,s.Possible);return nil}
 func unique(values []string)[]string{seen:=map[string]struct{}{};out:=[]string{};for _,v:=range values{k:=strings.TrimSpace(v);if k==""{continue};if _,ok:=seen[k];ok{continue};seen[k]=struct{}{};out=append(out,k)};return out}
 
+
+func rankAndDedupeJobs(jobs []domain.Job) []domain.Job {
+	sort.SliceStable(jobs, func(i, j int) bool { return matching.BetterMatch(jobs[i], jobs[j]) })
+	return dedupe.Jobs(jobs)
+}
 
 func limitJobsPerSource(jobs []domain.Job, limit int) []domain.Job {
 	if limit <= 0 {
