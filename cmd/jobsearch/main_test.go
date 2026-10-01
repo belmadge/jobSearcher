@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -144,5 +145,46 @@ func TestWebJobEligibleRejectsOutOfTargetSeniority(t *testing.T) {
 	}
 	if webJobEligible(job, 55) {
 		t.Fatal("expected out-of-target seniority job to be rejected")
+	}
+}
+
+
+func TestMergeSourceResultsKeepsSuccessfulSourcesWhenOneFails(t *testing.T) {
+	jobs, err := mergeSourceResults(
+		sourceResult{jobs: []domain.Job{{Source: "remoteok", Title: "Backend Engineer"}}},
+		sourceResult{err: errors.New("remotive unavailable")},
+		sourceResult{jobs: []domain.Job{{Source: "himalayas", Title: "Go Engineer"}}},
+	)
+	if err == nil {
+		t.Fatal("expected partial failure to be reported")
+	}
+	if len(jobs) != 2 {
+		t.Fatalf("expected successful source jobs to be preserved, got %d", len(jobs))
+	}
+}
+
+func TestMergeSourceResultsFailsWhenAllSourcesFail(t *testing.T) {
+	jobs, err := mergeSourceResults(
+		sourceResult{err: errors.New("remoteok unavailable")},
+		sourceResult{err: errors.New("remotive unavailable")},
+	)
+	if err == nil {
+		t.Fatal("expected error when all sources fail")
+	}
+	if jobs != nil {
+		t.Fatalf("expected no jobs when every source fails, got %d", len(jobs))
+	}
+}
+
+func TestMergeSourceResultsReturnsJobsWithoutErrorWhenAllSucceed(t *testing.T) {
+	jobs, err := mergeSourceResults(
+		sourceResult{jobs: []domain.Job{{Source: "remoteok"}}},
+		sourceResult{jobs: []domain.Job{{Source: "remotive"}}},
+	)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(jobs) != 2 {
+		t.Fatalf("expected 2 jobs, got %d", len(jobs))
 	}
 }
