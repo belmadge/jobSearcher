@@ -119,7 +119,11 @@ var irrelevantTitleTerms = []string{
 
 func IsRelevant(j domain.Job, requestedRoles ...string) bool {
 	title := strings.ToLower(strings.TrimSpace(j.Title))
-	for _, term := range irrelevantTitleTerms { if strings.Contains(title, term) { return false } }
+	qaRequested := requestedRoleIncludesQA(requestedRoles)
+	for _, term := range irrelevantTitleTerms {
+		if qaRequested && isQATitleExclusion(term) { continue }
+		if strings.Contains(title, term) { return false }
+	}
 	if len(requestedRoles) > 0 {
 		return matchesRequestedRole(j, requestedRoles)
 	}
@@ -146,6 +150,25 @@ func IsRelevant(j domain.Job, requestedRoles ...string) bool {
 		if strings.Contains(all, signal) { return true }
 	}
 	return false
+}
+
+func requestedRoleIncludesQA(requestedRoles []string) bool {
+	for _, requested := range requestedRoles {
+		role := normalizeRoleText(requested)
+		if role == "qa" || strings.Contains(role, "quality assurance") || strings.Contains(role, "sdet") || strings.Contains(role, "test engineer") {
+			return true
+		}
+	}
+	return false
+}
+
+func isQATitleExclusion(term string) bool {
+	switch term {
+	case "qa engineer", "quality assurance", "sdet", "test engineer":
+		return true
+	default:
+		return false
+	}
 }
 
 func matchesRequestedRole(j domain.Job, requestedRoles []string) bool {
