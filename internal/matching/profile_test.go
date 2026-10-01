@@ -36,3 +36,23 @@ func containsNormalized(values []string,want string) bool {
 	for _, value := range values { if normalizeRoleText(value)==normalizeRoleText(want) { return true } }
 	return false
 }
+
+
+func TestBuildSearchProfileBroadensRetrievalByRoleFamily(t *testing.T) {
+	cases := []struct {
+		role string
+		want []string
+	}{
+		{"Backend Developer", []string{"Software Engineer", "Software Developer", "API Engineer"}},
+		{"QA", []string{"SDET", "Test Automation Engineer", "Test Automation"}},
+		{"DevOps", []string{"SRE", "Platform Engineer", "Infrastructure Engineer"}},
+	}
+	for _, tc := range cases {
+		p := BuildSearchProfile(config.Profile{Titles: []string{tc.role}})
+		for _, want := range tc.want {
+			if !containsNormalized(p.ExpandedRoles, want) {
+				t.Fatalf("%q: expected broad discovery term %q in %v", tc.role, want, p.ExpandedRoles)
+			}
+		}
+	}
+}
