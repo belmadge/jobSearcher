@@ -41,6 +41,8 @@ type Job struct {
 	RecommendationStatus RecommendationStatus `json:"recommendation_status"`
 	Status string `json:"status"`
 	FitScore int `json:"fit_score"`
+	RoleMatch int `json:"role_match"`
+	SkillMatch int `json:"skill_match"`
 	TechnicalMatch int `json:"technical_match"`
 	ResponsibilityMatch int `json:"responsibility_match"`
 	SeniorityMatch int `json:"seniority_match"`
