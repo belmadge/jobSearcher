@@ -336,3 +336,37 @@ func TestExactSkillRemainsStrongerThanRelated(t *testing.T) {
 		t.Fatalf("exact technology should remain stronger: exact=%d related=%d", exact.TechnicalMatch, related.TechnicalMatch)
 	}
 }
+
+
+func TestMatchBucketUsesFinalFitScore(t *testing.T) {
+	cases := []struct {
+		score int
+		want MatchBucket
+	}{
+		{75, StrongMatch},
+		{90, StrongMatch},
+		{74, CompatibleMatch},
+		{60, CompatibleMatch},
+		{59, PossibleMatch},
+		{40, PossibleMatch},
+		{39, LowMatch},
+		{0, LowMatch},
+	}
+	for _, tc := range cases {
+		if got := matchBucket(tc.score); got != tc.want {
+			t.Fatalf("score %d: expected %q, got %q", tc.score, tc.want, got)
+		}
+	}
+}
+
+func TestScoreSetsMatchBucket(t *testing.T) {
+	p := profile()
+	j := domain.Job{Title: "Backend Engineer", Description: "Go PostgreSQL AWS Docker APIs"}
+	Score(&j, p)
+	if j.MatchBucket == "" {
+		t.Fatal("expected match bucket to be populated")
+	}
+	if string(matchBucket(j.FitScore)) != j.MatchBucket {
+		t.Fatalf("bucket must reflect final fit score: score=%d bucket=%q", j.FitScore, j.MatchBucket)
+	}
+}
