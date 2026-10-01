@@ -61,7 +61,7 @@ var tagRE = regexp.MustCompile("(?s)<[^>]+>")
 var spaceRE = regexp.MustCompile("\\s+")
 
 func (c *Client) FetchJobs(ctx context.Context, q sources.Query) ([]domain.Job, error) {
-	terms := q.Terms
+	terms := uniqueTerms(q.Terms)
 	if len(terms) == 0 { terms = []string{"software engineer", "backend engineer", "golang", "platform engineer"} }
 	seen := map[string]bool{}
 	out := make([]domain.Job, 0)
@@ -93,6 +93,21 @@ func (c *Client) FetchJobs(ctx context.Context, q sources.Query) ([]domain.Job, 
 		}
 	}
 	return out, nil
+}
+
+func uniqueTerms(terms []string) []string {
+	seen := map[string]bool{}
+	out := make([]string, 0, len(terms))
+	for _, term := range terms {
+		term = strings.TrimSpace(term)
+		key := strings.ToLower(term)
+		if term == "" || seen[key] {
+			continue
+		}
+		seen[key] = true
+		out = append(out, term)
+	}
+	return out
 }
 
 func normalize(p job) domain.Job {
