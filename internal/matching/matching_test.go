@@ -370,3 +370,28 @@ func TestScoreSetsMatchBucket(t *testing.T) {
 		t.Fatalf("bucket must reflect final fit score: score=%d bucket=%q", j.FitScore, j.MatchBucket)
 	}
 }
+
+
+func TestBetterMatchUsesFitScoreFirst(t *testing.T) {
+	high := domain.Job{FitScore: 80, RoleMatch: 50}
+	low := domain.Job{FitScore: 79, RoleMatch: 100}
+	if !BetterMatch(high, low) {
+		t.Fatal("higher FitScore must remain the primary ranking signal")
+	}
+}
+
+func TestBetterMatchBreaksFitScoreTiesByRoleAndSkills(t *testing.T) {
+	role := domain.Job{FitScore: 75, RoleMatch: 95, SkillMatch: 40}
+	skill := domain.Job{FitScore: 75, RoleMatch: 80, SkillMatch: 100}
+	if !BetterMatch(role, skill) {
+		t.Fatal("RoleMatch should break a FitScore tie before SkillMatch")
+	}
+}
+
+func TestBetterMatchUsesDeterministicFallback(t *testing.T) {
+	a := domain.Job{FitScore: 70, RoleMatch: 80, SkillMatch: 80, TechnicalMatch: 80, Title: "Backend Engineer", Company: "A"}
+	b := domain.Job{FitScore: 70, RoleMatch: 80, SkillMatch: 80, TechnicalMatch: 80, Title: "Backend Engineer", Company: "B"}
+	if !BetterMatch(a, b) {
+		t.Fatal("company should provide a deterministic final tie-break")
+	}
+}
