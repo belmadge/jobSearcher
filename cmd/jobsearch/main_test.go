@@ -41,3 +41,29 @@ func TestIsFreshUsesNewestOfUpdatedAndPostedDates(t *testing.T) {
 		t.Fatal("expected recent posted date to keep the job fresh")
 	}
 }
+func TestLimitJobsPerSourceKeepsRankedOrder(t *testing.T) {
+	jobs := []domain.Job{
+		{Source: "greenhouse", FitScore: 95, Title: "Best"},
+		{Source: "greenhouse", FitScore: 90, Title: "Second"},
+		{Source: "lever", FitScore: 88, Title: "Other"},
+		{Source: "greenhouse", FitScore: 70, Title: "Discarded"},
+	}
+	got := limitJobsPerSource(jobs, 2)
+	if len(got) != 3 {
+		t.Fatalf("expected 3 jobs after per-source limit, got %d", len(got))
+	}
+	if got[0].Title != "Best" || got[1].Title != "Second" || got[2].Title != "Other" {
+		t.Fatalf("expected limit to preserve ranked order, got %+v", got)
+	}
+}
+
+func TestLimitJobsPerSourceDoesNotLimitWhenDisabled(t *testing.T) {
+	jobs := []domain.Job{
+		{Source: "greenhouse", Title: "A"},
+		{Source: "greenhouse", Title: "B"},
+	}
+	got := limitJobsPerSource(jobs, 0)
+	if len(got) != len(jobs) {
+		t.Fatalf("expected disabled limit to preserve all jobs, got %d", len(got))
+	}
+}
