@@ -220,3 +220,40 @@ func TestRequestedRoleAliases(t *testing.T) {
 }
 
 
+
+
+func TestRoleAndSkillMatchScores(t *testing.T) {
+	p := profile()
+	exact := domain.Job{Title: "Backend Developer", Description: "Go PostgreSQL AWS Docker"}
+	alias := domain.Job{Title: "API Engineer", Description: "Go PostgreSQL"}
+	ScoreForRoles(&exact, p, []string{"Backend Developer"})
+	ScoreForRoles(&alias, p, []string{"Backend Developer"})
+
+	if exact.RoleMatch != 100 {
+		t.Fatalf("exact role should score 100, got %d", exact.RoleMatch)
+	}
+	if alias.RoleMatch != 85 {
+		t.Fatalf("backend alias role should score 85, got %d", alias.RoleMatch)
+	}
+	if exact.SkillMatch != 100 {
+		t.Fatalf("all requested skills should score 100, got %d", exact.SkillMatch)
+	}
+	if alias.SkillMatch <= 0 || alias.SkillMatch >= exact.SkillMatch {
+		t.Fatalf("partial skill overlap should fall below exact match: exact=%d alias=%d", exact.SkillMatch, alias.SkillMatch)
+	}
+	if exact.FitScore <= alias.FitScore {
+		t.Fatalf("exact role/skill match should rank above partial match: exact=%d alias=%d", exact.FitScore, alias.FitScore)
+	}
+}
+
+func TestRoleMatchDoesNotRequireExactTitle(t *testing.T) {
+	p := profile()
+	j := domain.Job{Title: "Backend Engineer", Description: "Go APIs with PostgreSQL"}
+	ScoreForRoles(&j, p, []string{"Backend Developer"})
+	if j.RoleMatch < 80 {
+		t.Fatalf("equivalent backend title should score highly without exact title: %d", j.RoleMatch)
+	}
+	if j.FitScore < 55 {
+		t.Fatalf("compatible role should remain above minimum fit: %d", j.FitScore)
+	}
+}
