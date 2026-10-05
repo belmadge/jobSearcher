@@ -2,14 +2,14 @@ package main
 
 import (
  "context";"encoding/json";"errors";"fmt";"os";"path/filepath";"sort";"strings";"sync";"time"
- "jobsearcher/internal/config";"jobsearcher/internal/dedupe";"jobsearcher/internal/domain";"jobsearcher/internal/filter";"jobsearcher/internal/matching";"jobsearcher/internal/report";"jobsearcher/internal/sources";"jobsearcher/internal/sources/greenhouse";"jobsearcher/internal/sources/lever";"jobsearcher/internal/sources/remoteok";"jobsearcher/internal/sources/remotive";"jobsearcher/internal/sources/programathor";"jobsearcher/internal/sources/himalayas";"jobsearcher/internal/storage/sqlite"
+ "jobsearcher/internal/config";"jobsearcher/internal/dedupe";"jobsearcher/internal/domain";"jobsearcher/internal/filter";"jobsearcher/internal/matching";"jobsearcher/internal/report";"jobsearcher/internal/sources";"jobsearcher/internal/sources/greenhouse";"jobsearcher/internal/sources/lever";"jobsearcher/internal/sources/remoteok";"jobsearcher/internal/sources/remotive";"jobsearcher/internal/sources/programathor";"jobsearcher/internal/sources/himalayas";"jobsearcher/internal/sources/gupy";"jobsearcher/internal/sources/adzuna";"jobsearcher/internal/sources/themuse";"jobsearcher/internal/sources/arbeitnow";"jobsearcher/internal/storage/sqlite"
 )
 func main(){if err:=run(context.Background(),os.Args[1:]);err!=nil{fmt.Fprintln(os.Stderr,"error:",err);os.Exit(1)}}
 func run(ctx context.Context,args []string)error{
  command,sourceName,dryRun:="run","all",false
  if len(args)>0{command=args[0];for _,arg:=range args[1:]{if arg=="--dry-run"{dryRun=true};if strings.HasPrefix(arg,"--source="){sourceName=strings.TrimPrefix(arg,"--source=")}}}
  if err:=config.LoadDotEnv(".env");err!=nil{return err};boards,err:=config.Load[config.Boards]("config/boards.json");if err!=nil{return err}
- switch command{case "web":return startWebServer(ctx,boards);case "run":profile,e:=config.Load[config.Profile]("config/profile.json");if e!=nil{return e};search,e:=config.Load[config.Search]("config/search.json");if e!=nil{return e};return runSearch(ctx,profile,search,boards,sourceName,dryRun);case "report":return latestReport();case "stats":return stats(ctx);case "--help","help":fmt.Println("jobsearch web");fmt.Println("jobsearch run [--dry-run] [--source=all|greenhouse|lever|remoteok|remotive|programathor|himalayas|mock]");fmt.Println("jobsearch report");fmt.Println("jobsearch stats");return nil;default:return fmt.Errorf("unknown command %q; use --help",command)}
+ switch command{case "web":return startWebServer(ctx,boards);case "run":profile,e:=config.Load[config.Profile]("config/profile.json");if e!=nil{return e};search,e:=config.Load[config.Search]("config/search.json");if e!=nil{return e};return runSearch(ctx,profile,search,boards,sourceName,dryRun);case "report":return latestReport();case "stats":return stats(ctx);case "--help","help":fmt.Println("jobsearch web");fmt.Println("jobsearch run [--dry-run] [--source=all|greenhouse|lever|remoteok|remotive|programathor|himalayas|gupy|adzuna|themuse|arbeitnow|mock]");fmt.Println("jobsearch report");fmt.Println("jobsearch stats");return nil;default:return fmt.Errorf("unknown command %q; use --help",command)}
 }
 func runSearch(ctx context.Context,profile config.Profile,search config.Search,boards config.Boards,sourceName string,dryRun bool)error{
  tokens:=[]string{};sites:=[]string{}
@@ -96,6 +96,10 @@ func fetchSources(ctx context.Context,name string,q sources.Query)([]domain.Job,
  if name=="remotive"{jobs,err:=remotive.NewClient().FetchJobs(ctx,q);return sanitizeJobs(jobs),err}
  if name=="programathor"{jobs,err:=programathor.NewClient().FetchJobs(ctx,q);return sanitizeJobs(jobs),err}
  if name=="himalayas"{jobs,err:=himalayas.NewClient().FetchJobs(ctx,q);return sanitizeJobs(jobs),err}
+ if name=="gupy"{jobs,err:=gupy.NewClient().FetchJobs(ctx,q);return sanitizeJobs(jobs),err}
+ if name=="adzuna"{jobs,err:=adzuna.NewClient().FetchJobs(ctx,q);return sanitizeJobs(jobs),err}
+ if name=="themuse"{jobs,err:=themuse.NewClient().FetchJobs(ctx,q);return sanitizeJobs(jobs),err}
+ if name=="arbeitnow"{jobs,err:=arbeitnow.NewClient().FetchJobs(ctx,q);return sanitizeJobs(jobs),err}
  if name!="all"{return nil,fmt.Errorf("unknown source %q",name)}
 
  sourcesToFetch:=[]sources.JobSource{
@@ -103,6 +107,10 @@ func fetchSources(ctx context.Context,name string,q sources.Query)([]domain.Job,
   remotive.NewClient(),
   programathor.NewClient(),
   himalayas.NewClient(),
+  gupy.NewClient(),
+  adzuna.NewClient(),
+  themuse.NewClient(),
+  arbeitnow.NewClient(),
  }
  results:=make([]sourceResult,0,len(sourcesToFetch)+2)
  var mu sync.Mutex
