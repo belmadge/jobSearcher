@@ -108,13 +108,15 @@ func fetchSources(ctx context.Context,name string,q sources.Query)([]domain.Job,
   programathor.NewClient(),
   himalayas.NewClient(),
   gupy.NewClient(),
-  adzuna.NewClient(),
   themuse.NewClient(),
   arbeitnow.NewClient(),
  }
  results:=make([]sourceResult,0,len(sourcesToFetch)+2)
  var mu sync.Mutex
  var wg sync.WaitGroup
+ if strings.TrimSpace(os.Getenv("ADZUNA_APP_ID"))!="" && strings.TrimSpace(os.Getenv("ADZUNA_APP_KEY"))!="" {
+  sourcesToFetch=append(sourcesToFetch,adzuna.NewClient())
+ }
  for _,source:=range sourcesToFetch {
   source:=source
   wg.Add(1)
