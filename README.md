@@ -95,7 +95,13 @@ go run ./cmd/jobsearch run --source=remoteok
 go run ./cmd/jobsearch run --source=remotive
 go run ./cmd/jobsearch run --source=programathor
 go run ./cmd/jobsearch run --source=himalayas
+go run ./cmd/jobsearch run --source=gupy
+go run ./cmd/jobsearch run --source=adzuna
+go run ./cmd/jobsearch run --source=themuse
+go run ./cmd/jobsearch run --source=arbeitnow
 ```
+
+Adzuna é opcional e exige `ADZUNA_APP_ID` e `ADZUNA_APP_KEY` no ambiente.
 
 Para executar todas as fontes:
 
@@ -197,14 +203,24 @@ Atualmente o JobSearcher usa fontes com endpoints públicos ou APIs documentadas
 - Remotive — API pública de vagas remotas.
 - Programathor — página pública brasileira de vagas de programação.
 - Himalayas — API pública de vagas remotas, sem autenticação.
+- Gupy — endpoint público de vagas do portal de empregabilidade.
+- Adzuna — API de anúncios, opcional mediante `app_id` e `app_key`.
+- The Muse — API pública de vagas.
+- Arbeitnow — API pública de vagas.
 
 ### Fontes avaliadas, mas não acopladas diretamente
 
 **LinkedIn:** as páginas de vagas podem ser públicas, mas o projeto não depende de scraping direto do LinkedIn.
 
-**Gupy:** possui API documentada, mas o fluxo de consulta exige credenciais específicas. O projeto não exige uma credencial de empresa/recrutador apenas para pesquisar vagas.
+**Indeed:** a página pública existe e tem grande cobertura, mas a integração programática depende de acesso/aprovação da Indeed; os termos atuais também restringem usos automatizados não autorizados. Não será usado como scraper de HTML. citeturn2search8turn2search7
 
-**Indeed:** possui APIs e regras específicas de integração; não será usado como scraper de HTML.
+**Glassdoor:** os termos atuais proíbem scraping, mineração e agentes automatizados sem permissão expressa. Não será usado como scraper. citeturn2search0
+
+**InfoJobs:** os termos brasileiros proíbem explicitamente mecanismos do tipo Robot/Crawler sem autorização. Não será usado como scraper. citeturn3search0
+
+**Catho:** os termos proíbem explicitamente robot, crawler, data mining e data scraping. Não será usado como scraper. citeturn2search10
+
+**Vagas.com:** é uma fonte brasileira relevante e pode ser pesquisada manualmente, mas ainda não entrou no pipeline automático porque a integração HTML seria mais frágil que as APIs/fontes estruturadas adotadas aqui.
 
 O objetivo é ampliar a cobertura sem transformar o JobSearcher em um robô frágil ou dependente de credenciais de terceiros.
 
