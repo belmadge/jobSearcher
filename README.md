@@ -212,13 +212,13 @@ Atualmente o JobSearcher usa fontes com endpoints públicos ou APIs documentadas
 
 **LinkedIn:** as páginas de vagas podem ser públicas, mas o projeto não depende de scraping direto do LinkedIn.
 
-**Indeed:** a página pública existe e tem grande cobertura, mas a integração programática depende de acesso/aprovação da Indeed; os termos atuais também restringem usos automatizados não autorizados. Não será usado como scraper de HTML. citeturn2search8turn2search7
+**Indeed:** a página pública existe e tem grande cobertura, mas a integração programática depende de acesso/aprovação da Indeed; os termos atuais também restringem usos automatizados não autorizados. Não será usado como scraper de HTML.
 
-**Glassdoor:** os termos atuais proíbem scraping, mineração e agentes automatizados sem permissão expressa. Não será usado como scraper. citeturn2search0
+**Glassdoor:** os termos atuais proíbem scraping, mineração e agentes automatizados sem permissão expressa. Não será usado como scraper.
 
-**InfoJobs:** os termos brasileiros proíbem explicitamente mecanismos do tipo Robot/Crawler sem autorização. Não será usado como scraper. citeturn3search0
+**InfoJobs:** os termos brasileiros proíbem explicitamente mecanismos do tipo Robot/Crawler sem autorização. Não será usado como scraper.
 
-**Catho:** os termos proíbem explicitamente robot, crawler, data mining e data scraping. Não será usado como scraper. citeturn2search10
+**Catho:** os termos proíbem explicitamente robot, crawler, data mining e data scraping. Não será usado como scraper.
 
 **Vagas.com:** é uma fonte brasileira relevante e pode ser pesquisada manualmente, mas ainda não entrou no pipeline automático porque a integração HTML seria mais frágil que as APIs/fontes estruturadas adotadas aqui.
 
