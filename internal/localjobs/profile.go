@@ -96,7 +96,7 @@ func isMaceio(location string, p Profile) bool {
 	if state == "" {
 		state = "al"
 	}
-	return strings.Contains(text, "alagoas") || regexp.MustCompile(`(^| )al($| )`).MatchString(text)
+	return strings.Contains(text, "alagoas") || regexp.MustCompile(`(^| )`+regexp.QuoteMeta(state)+`($| )`).MatchString(text)
 }
 
 func isOnsite(workplace, location, description string) bool {
