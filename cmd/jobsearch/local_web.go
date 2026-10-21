@@ -78,8 +78,10 @@ func handleLocalJobs(ctx context.Context, boards config.Boards, w http.ResponseW
 			v.Error = "Selecione uma opção válida para escolaridade."
 		} else {
 			p.City, p.State, p.Country = "Maceió", "AL", "Brasil"
-			terms := localjobs.SearchTerms(p)
-			query := sources.Query{Terms: terms, Location: "Maceió, AL, Brazil"}
+			// Fetch the full SINE listing instead of filtering at the source by the
+			// typed title. Title/category/experience/education should rank results,
+			// not hide potentially useful vacancies from the user.
+			query := sources.Query{Location: "Maceió, AL, Brazil"}
 			// Use the public SINE Maceió portal as a free source; no API key or paid plan is required.
 			jobs, err := sine.NewClient().FetchJobs(ctx, query)
 			if err != nil && len(jobs) == 0 {
