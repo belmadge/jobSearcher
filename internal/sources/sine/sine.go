@@ -40,8 +40,11 @@ func (c *Client) FetchJobs(ctx context.Context, q sources.Query) ([]domain.Job, 
 	if url == "" { url = PortalURL }
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil { return nil, err }
-	req.Header.Set("Accept", "text/html,application/xhtml+xml")
-	req.Header.Set("User-Agent", "JobSearcher/1.0 (public job listing reader)")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "pt-BR,pt;q=0.9,en;q=0.8")
+	// Use a normal browser UA: some public portals serve a reduced page to unknown bots.
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")
+	req.Header.Set("Referer", "https://www.online.maceio.al.gov.br/")
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil { return nil, fmt.Errorf("SINE Maceió: %w", err) }
 	defer resp.Body.Close()
@@ -49,6 +52,9 @@ func (c *Client) FetchJobs(ctx context.Context, q sources.Query) ([]domain.Job, 
 	if err != nil { return nil, err }
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 { return nil, fmt.Errorf("SINE Maceió: HTTP %d", resp.StatusCode) }
 	jobs := ParseListings(string(body))
+	if len(jobs) == 0 {
+		return nil, fmt.Errorf("SINE Maceió: a página respondeu, mas nenhum anúncio foi reconhecido (HTML recebido: %d bytes); o portal pode ter alterado a estrutura ou exigido conteúdo dinâmico", len(body))
+	}
 	terms := normalizeTerms(q.Terms)
 	out := make([]domain.Job, 0, len(jobs))
 	for _, job := range jobs {
