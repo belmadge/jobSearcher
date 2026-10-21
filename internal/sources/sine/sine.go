@@ -28,6 +28,8 @@ func NewClient() *Client {
 func (c *Client) Name() string { return "sine-maceio" }
 
 var (
+	scriptRE = regexp.MustCompile(`(?is)<script\b[^>]*>.*?</script>`)
+	styleRE = regexp.MustCompile(`(?is)<style\b[^>]*>.*?</style>`)
 	tagRE = regexp.MustCompile(`(?s)<[^>]*>`)
 	blockRE = regexp.MustCompile(`(?i)</(div|p|li|h[1-6]|article|section|br|tr|header|footer|a)>`)
 	spaceRE = regexp.MustCompile(`[\t\x0b\f\r ]+`)
