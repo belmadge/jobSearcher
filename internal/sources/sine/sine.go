@@ -1,0 +1,130 @@
+package sine
+
+import (
+	"context"
+	"fmt"
+	"html"
+	"io"
+	"net/http"
+	"regexp"
+	"strings"
+	"time"
+
+	"jobsearcher/internal/domain"
+	"jobsearcher/internal/sources"
+)
+
+const PortalURL = "https://www.online.maceio.al.gov.br/n/talentos/"
+
+type Client struct {
+	HTTPClient *http.Client
+	URL        string
+}
+
+func NewClient() *Client {
+	return &Client{HTTPClient: &http.Client{Timeout: 15 * time.Second}, URL: PortalURL}
+}
+
+func (c *Client) Name() string { return "sine-maceio" }
+
+var (
+	tagRE = regexp.MustCompile(`(?s)<[^>]*>`)
+	blockRE = regexp.MustCompile(`(?i)</(div|p|li|h[1-6]|article|section|br|tr|header|footer|a)>`)
+	spaceRE = regexp.MustCompile(`[\t\x0b\f\r ]+`)
+	idRE = regexp.MustCompile(`#\s*(\d{3,})`)
+	dateRE = regexp.MustCompile(`(?i)data limite para se candidatar:\s*(\d{2}/\d{2}/\d{4})`)
+)
+
+func (c *Client) FetchJobs(ctx context.Context, q sources.Query) ([]domain.Job, error) {
+	url := strings.TrimSpace(c.URL)
+	if url == "" { url = PortalURL }
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil { return nil, err }
+	req.Header.Set("Accept", "text/html,application/xhtml+xml")
+	req.Header.Set("User-Agent", "JobSearcher/1.0 (public job listing reader)")
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil { return nil, fmt.Errorf("SINE Maceió: %w", err) }
+	defer resp.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
+	if err != nil { return nil, err }
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 { return nil, fmt.Errorf("SINE Maceió: HTTP %d", resp.StatusCode) }
+	jobs := ParseListings(string(body))
+	terms := normalizeTerms(q.Terms)
+	out := make([]domain.Job, 0, len(jobs))
+	for _, job := range jobs {
+		if len(terms) > 0 {
+			haystack := normalize(job.Title + " " + job.Description)
+			matched := false
+			for _, term := range terms { if strings.Contains(haystack, term) { matched = true; break } }
+			if !matched { continue }
+		}
+		out = append(out, job)
+	}
+	return out, nil
+}
+
+// ParseListings reads the public listing page without relying on private APIs.
+// Each result links to the official listing page; users can locate the posting
+// by its visible SINE vacancy number.
+func ParseListings(raw string) []domain.Job {
+	text := blockRE.ReplaceAllString(raw, "$0\n")
+	text = tagRE.ReplaceAllString(text, "\n")
+	text = html.UnescapeString(text)
+	lines := strings.Split(text, "\n")
+	clean := make([]string, 0, len(lines))
+	for _, line := range lines {
+		line = strings.TrimSpace(spaceRE.ReplaceAllString(line, " "))
+		if line != "" { clean = append(clean, line) }
+	}
+	full := strings.Join(clean, "\n")
+	ids := idRE.FindAllStringSubmatchIndex(full, -1)
+	out := []domain.Job{}
+	seen := map[string]bool{}
+	for _, match := range ids {
+		id := full[match[2]:match[3]]
+		if seen[id] { continue }
+		seen[id] = true
+		prefix := strings.TrimSpace(full[:match[0]])
+		prev := strings.Split(prefix, "\n")
+		title := ""
+		for i := len(prev)-1; i >= 0 && i >= len(prev)-5; i-- {
+			candidate := strings.TrimSpace(prev[i])
+			lower := strings.ToLower(candidate)
+			if candidate == "" || strings.Contains(lower, "ver mais") || strings.Contains(lower, "vagas disponíveis") || strings.Contains(lower, "filtros") { continue }
+			if len(candidate) >= 4 && !strings.Contains(lower, "tutorial") { title = candidate; break }
+		}
+		title = strings.TrimSpace(strings.Trim(title, "·• "))
+		if title == "" { continue }
+		// Take only the text following this vacancy number until the next ID.
+		start := match[1]
+		end := len(full)
+		for _, next := range ids { if next[0] > match[0] { end = next[0]; break } }
+		detail := strings.TrimSpace(full[start:end])
+		if len(detail) > 1800 { detail = detail[:1800] }
+		deadline := ""
+		if m := dateRE.FindStringSubmatch(detail); len(m) == 2 { deadline = m[1] }
+		out = append(out, domain.Job{
+			ID: "sine-maceio:" + id, Source: "sine-maceio", Title: title,
+			URL: PortalURL, ApplyURL: PortalURL, Location: "Maceió, AL, Brasil",
+			WorkplaceType: "Presencial", Description: detail,
+			PostedAt: "", UpdatedAt: deadline,
+		})
+	}
+	return out
+}
+
+func normalizeTerms(values []string) []string {
+	out := []string{}
+	for _, value := range values {
+		v := normalize(value)
+		if v != "" { out = append(out, v) }
+	}
+	return out
+}
+
+func normalize(value string) string {
+	value = strings.ToLower(value)
+	return strings.NewReplacer("á","a","à","a","â","a","ã","a","é","e","ê","e","í","i","ó","o","ô","õ","o","ú","u","ç","c").Replace(value)
+}
+
+var _ sources.JobSource = (*Client)(nil)
