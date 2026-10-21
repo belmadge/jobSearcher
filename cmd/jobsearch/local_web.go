@@ -10,7 +10,6 @@ import (
 	"jobsearcher/internal/config"
 	"jobsearcher/internal/dedupe"
 	"jobsearcher/internal/domain"
-	"jobsearcher/internal/localjobs"
 	"jobsearcher/internal/sources"
 	"jobsearcher/internal/sources/sine"
 )
@@ -48,7 +47,6 @@ func handleLocalJobs(ctx context.Context, boards config.Boards, w http.ResponseW
 		http.Error(w, "método não permitido", http.StatusMethodNotAllowed)
 		return
 	}
-	p := localjobs.DefaultProfile()
 	v := localJobsView{}
 	if r.Method == http.MethodPost {
 		if err := r.ParseForm(); err != nil {
@@ -80,7 +78,6 @@ func handleLocalJobs(ctx context.Context, boards config.Boards, w http.ResponseW
 			})
 			v.Searched = true
 			v.Count = len(v.Jobs)
-		}
 		}
 	}
 	renderLocalJobs(w, v)
