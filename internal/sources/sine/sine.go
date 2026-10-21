@@ -122,6 +122,47 @@ func ParseListings(raw string) []domain.Job {
 			PostedAt: "", UpdatedAt: deadline,
 		})
 	}
+	if len(out) == 0 {
+		return parseListingsWithoutCodes(clean)
+	}
+	return out
+}
+
+// Some versions of the portal omit the visible #code from the rendered card.
+// In that case, recover cards from their visible "TITLE : N vaga(s)" heading.
+func parseListingsWithoutCodes(lines []string) []domain.Job {
+	out := []domain.Job{}
+	for i, line := range lines {
+		m := vacancyTitleRE.FindStringSubmatch(line)
+		if len(m) != 2 {
+			continue
+		}
+		title := strings.TrimSpace(m[1])
+		if title == "" || strings.Contains(normalize(title), "total de vagas") {
+			continue
+		}
+		end := len(lines)
+		for j := i + 1; j < len(lines); j++ {
+			if vacancyTitleRE.MatchString(lines[j]) {
+				end = j
+				break
+			}
+		}
+		detail := strings.TrimSpace(strings.Join(lines[i+1:end], " "))
+		if len(detail) > 1800 {
+			detail = detail[:1800]
+		}
+		if strings.Contains(normalize(detail), "inscricoes encerradas") {
+			continue
+		}
+		// The title itself is stable enough for deduplication when the portal omits its code.
+		id := "sine-maceio:title:" + normalize(title)
+		out = append(out, domain.Job{
+			ID: id, Source: "sine-maceio", Title: title, URL: PortalURL,
+			ApplyURL: PortalURL, Location: "Maceió, AL, Brasil", WorkplaceType: "Presencial",
+			Description: detail,
+		})
+	}
 	return out
 }
 
