@@ -34,7 +34,7 @@ const localJobsPage = `<!doctype html>
 <button class="submit" id="localSearchButton" type="submit">Encontrar vagas em Maceió</button>
 </form>{{if .Error}}<div class="error">{{.Error}}</div>{{end}}<p class="note">Os campos são usados apenas para esta busca. "Sem preferência" e "Qualquer" não excluem vagas por experiência ou escolaridade.</p>
 </section>
-{{if .Searched}}<section class="results"><h2>{{.Count}} vagas presenciais elegíveis</h2><p>Resultados encontrados nas fontes disponíveis. Confirme os detalhes na publicação original.</p><div class="grid">{{range .Jobs}}<article class="card"><div><span class="score">{{.LocalScore}}% de alinhamento</span> <span class="source">{{.Source}}</span></div><h3>{{.Title}}</h3><strong>{{.Company}}</strong><div class="meta">⌖ {{.Location}} · Presencial</div><p>{{.Description}}</p><a class="link" href="{{.URL}}" target="_blank" rel="noopener">Ver publicação original ↗</a></article>{{else}}<div class="empty">Nenhuma vaga encontrada com todos os critérios. Isso não significa que não existam oportunidades; as fontes conectadas podem não cobrir todas as vagas locais.</div>{{end}}</div></section>{{end}}
+{{if .Searched}}<section class="results"><h2>{{.Count}} vagas presenciais elegíveis</h2><p>Foram recebidas {{.Fetched}} vagas brutas das fontes conectadas; {{.Rejected}} foram descartadas pelos filtros locais. Confirme os detalhes na publicação original.</p><div class="grid">{{range .Jobs}}<article class="card"><div><span class="score">{{.LocalScore}}% de alinhamento</span> <span class="source">{{.Source}}</span></div><h3>{{.Title}}</h3><strong>{{.Company}}</strong><div class="meta">⌖ {{.Location}} · Presencial</div><p>{{.Description}}</p><a class="link" href="{{.URL}}" target="_blank" rel="noopener">Ver publicação original ↗</a></article>{{else}}<div class="empty">Nenhuma vaga encontrada com todos os critérios. Isso não significa que não existam oportunidades; as fontes conectadas podem não cobrir todas as vagas locais.</div>{{end}}</div></section>{{end}}
 </main><script>const f=document.querySelector('form'),b=document.getElementById('localSearchButton');if(f&&b)f.addEventListener('submit',()=>{b.disabled=true;b.textContent='Buscando vagas...'})</script></body></html>`
 
 type localJobResult struct {
@@ -46,6 +46,8 @@ type localJobsView struct {
 	Title, Category, Experience, Education, Error string
 	Searched bool
 	Count int
+	Fetched int
+	Rejected int
 	Jobs []localJobResult
 }
 
@@ -84,11 +86,13 @@ func handleLocalJobs(ctx context.Context, boards config.Boards, w http.ResponseW
 				v.Error = "Não foi possível consultar as fontes: " + err.Error()
 			} else {
 				if err != nil {
-					v.Error = "Algumas fontes falharam; os resultados disponíveis foram mantidos."
+					v.Error = "Algumas fontes falharam; os resultados disponíveis foram mantidos. Detalhes: " + err.Error()
 				}
+				v.Fetched = len(jobs)
 				seen := map[string]bool{}
 				for _, job := range jobs {
 					if !localjobs.Eligible(job, p) {
+						v.Rejected++
 						continue
 					}
 					score := localjobs.MatchScore(job, p)
