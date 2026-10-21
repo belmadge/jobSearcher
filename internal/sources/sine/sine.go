@@ -54,7 +54,16 @@ func (c *Client) FetchJobs(ctx context.Context, q sources.Query) ([]domain.Job, 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 { return nil, fmt.Errorf("SINE Maceió: HTTP %d", resp.StatusCode) }
 	jobs := ParseListings(string(body))
 	if len(jobs) == 0 {
-		return nil, fmt.Errorf("SINE Maceió: a página respondeu, mas nenhum anúncio foi reconhecido (HTML recebido: %d bytes); o portal pode ter alterado a estrutura ou exigido conteúdo dinâmico", len(body))
+		// Include a short sanitized preview and markers so the UI error tells us
+		// whether the server returned the listing itself or only a page shell.
+		visible := html.UnescapeString(tagRE.ReplaceAllString(string(body), " "))
+		visible = strings.Join(strings.Fields(visible), " ")
+		if len(visible) > 220 {
+			visible = visible[:220]
+		}
+		idCount := len(idRE.FindAllString(string(body), -1))
+		vacancyCount := len(regexp.MustCompile(`(?i)\d+\s*vaga(?:\(s\))?`).FindAllString(string(body), -1))
+		return nil, fmt.Errorf("SINE Maceió: nenhum anúncio reconhecido (HTML: %d bytes; códigos # encontrados: %d; textos de vagas encontrados: %d; início recebido: %q). Isso ajuda a identificar se o portal enviou os anúncios ou só uma página dinâmica", len(body), idCount, vacancyCount, visible)
 	}
 	terms := normalizeTerms(q.Terms)
 	out := make([]domain.Job, 0, len(jobs))
@@ -74,6 +83,15 @@ func (c *Client) FetchJobs(ctx context.Context, q sources.Query) ([]domain.Job, 
 // Each result links to the official listing page; users can locate the posting
 // by its visible SINE vacancy number.
 func ParseListings(raw string) []domain.Job {
+	// Some gateways return HTML entities encoded more than once. Decode before
+	// stripping tags so headings and vacancy numbers remain visible to the parser.
+	for i := 0; i < 2; i++ {
+		decoded := html.UnescapeString(raw)
+		if decoded == raw {
+			break
+		}
+		raw = decoded
+	}
 	text := blockRE.ReplaceAllString(raw, "$0\n")
 	text = tagRE.ReplaceAllString(text, "\n")
 	text = html.UnescapeString(text)
