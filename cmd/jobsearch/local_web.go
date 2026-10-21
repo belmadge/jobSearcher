@@ -48,12 +48,7 @@ func handleLocalJobs(ctx context.Context, boards config.Boards, w http.ResponseW
 		return
 	}
 	v := localJobsView{}
-	if r.Method == http.MethodPost {
-		if err := r.ParseForm(); err != nil {
-			v.Error = "Não foi possível ler os dados enviados."
-			renderLocalJobs(w, v)
-			return
-		}
+	{
 		// This board deliberately applies no job filters: show every vacancy
 		// the public source parser can extract.
 		query := sources.Query{Location: "Maceió, AL, Brazil"}
