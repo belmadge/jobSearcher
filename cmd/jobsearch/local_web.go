@@ -4,6 +4,7 @@ import (
 	"context"
 	"html/template"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"jobsearcher/internal/domain"
 	"jobsearcher/internal/localjobs"
 	"jobsearcher/internal/sources"
+	"jobsearcher/internal/sources/adzuna"
 )
 
 const localJobsPage = `<!doctype html>
@@ -78,15 +80,20 @@ func handleLocalJobs(ctx context.Context, boards config.Boards, w http.ResponseW
 		} else {
 			p.City, p.State, p.Country = "Maceió", "AL", "Brasil"
 			terms := localjobs.SearchTerms(p)
-			tokens, sites := []string{}, []string{}
-			for _, board := range boards.Greenhouse { if board.Enabled && strings.TrimSpace(board.Token) != "" { tokens = append(tokens, board.Token) } }
-			for _, site := range boards.Lever { if site.Enabled && strings.TrimSpace(site.Site) != "" { sites = append(sites, site.Site) } }
-			jobs, err := fetchSources(ctx, "all", sources.Query{Terms: terms, Location: "Maceió, AL, Brazil", BoardTokens: tokens, LeverSites: sites})
+			query := sources.Query{Terms: terms, Location: "Maceió, AL, Brazil"}
+			// The general source pipeline is remote-heavy and downloads many jobs that this module must reject.
+			// Keep local search focused on a source with Brazil search support.
+			if strings.TrimSpace(os.Getenv("ADZUNA_APP_ID")) == "" || strings.TrimSpace(os.Getenv("ADZUNA_APP_KEY")) == "" {
+				v.Error = "Nenhuma fonte local está configurada. Configure ADZUNA_APP_ID e ADZUNA_APP_KEY no arquivo .env para habilitar a busca. As fontes gerais atuais são majoritariamente remotas e não devem ser usadas como substitutas de vagas presenciais em Maceió."
+				renderLocalJobs(w, v)
+				return
+			}
+			jobs, err := adzuna.NewClient().FetchJobs(ctx, query)
 			if err != nil && len(jobs) == 0 {
 				v.Error = "Não foi possível consultar as fontes: " + err.Error()
 			} else {
 				if err != nil {
-					v.Error = "Algumas fontes falharam; os resultados disponíveis foram mantidos. Detalhes: " + err.Error()
+					v.Error = "A fonte de vagas retornou uma falha; resultados parciais foram mantidos. Detalhes: " + err.Error()
 				}
 				v.Fetched = len(jobs)
 				seen := map[string]bool{}
