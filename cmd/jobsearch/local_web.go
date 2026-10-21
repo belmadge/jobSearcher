@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"html/template"
 	"net/http"
 	"sort"
-	"strconv"
 	"strings"
 
 	"jobsearcher/internal/config"
@@ -90,13 +88,13 @@ func handleLocalJobs(ctx context.Context, boards config.Boards, w http.ResponseW
 					if !localjobs.Eligible(job, p) {
 						continue
 					}
-					job.LocalScore = localjobs.MatchScore(job, p)
+					score := localjobs.MatchScore(job, p)
 					key := dedupe.CanonicalURL(job.URL)
 					if key == "" || seen[key] {
 						continue
 					}
 					seen[key] = true
-					v.Jobs = append(v.Jobs, localJobResult{Job: job, LocalScore: job.LocalScore})
+					v.Jobs = append(v.Jobs, localJobResult{Job: job, LocalScore: score})
 				}
 				sort.SliceStable(v.Jobs, func(i, j int) bool {
 					if v.Jobs[i].LocalScore != v.Jobs[j].LocalScore {
@@ -137,7 +135,3 @@ func validLocalChoice(value string, allowed ...string) bool {
 	return false
 }
 
-// Keep imports and query behavior explicit for local module development.
-var _ = context.Background
-var _ = strconv.Itoa
-var _ = fmt.Sprintf
