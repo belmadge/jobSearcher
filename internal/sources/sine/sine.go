@@ -112,7 +112,7 @@ func ParseListings(raw string) []domain.Job {
 		out = append(out, domain.Job{
 			ID: "sine-maceio:" + id, Source: "sine-maceio", Title: title,
 			URL: PortalURL, ApplyURL: PortalURL, Location: "Maceió, AL, Brasil",
-			WorkplaceType: "Presencial", Description: detail,
+			WorkplaceType: "Presencial", Description: "Código SINE: " + id + ". " + detail,
 			PostedAt: "", UpdatedAt: deadline,
 		})
 	}
