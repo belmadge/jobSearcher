@@ -32,6 +32,7 @@ var (
 	blockRE = regexp.MustCompile(`(?i)</(div|p|li|h[1-6]|article|section|br|tr|header|footer|a)>`)
 	spaceRE = regexp.MustCompile(`[\t\x0b\f\r ]+`)
 	idRE = regexp.MustCompile(`#\s*(\d{3,})`)
+	vacancyTitleRE = regexp.MustCompile(`(?i)^(.{4,160}?)\s*:\s*\d+\s*vaga(?:\(s\))?`)
 	dateRE = regexp.MustCompile(`(?i)data limite para se candidatar:\s*(\d{2}/\d{2}/\d{4})`)
 )
 
