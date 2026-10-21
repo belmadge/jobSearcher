@@ -85,19 +85,20 @@ func (c *Client) FetchJobs(ctx context.Context, q sources.Query) ([]domain.Job, 
 // Each result links to the official listing page; users can locate the posting
 // by its visible SINE vacancy number.
 func ParseListings(raw string) []domain.Job {
-	// Remove non-visible CSS and JavaScript before extracting text. Otherwise
-	// numeric selectors or script contents can be mistaken for vacancy IDs.
-	raw = scriptRE.ReplaceAllString(raw, " ")
-	raw = styleRE.ReplaceAllString(raw, " ")
-	// Some gateways return HTML entities encoded more than once. Decode before
-	// stripping tags so headings and vacancy numbers remain visible to the parser.
-	for i := 0; i < 2; i++ {
+	// Decode escaped HTML first: some responses encode the entire page, including
+	// <style> and <script> tags. Removing those tags before decoding leaves CSS
+	// text at the start of the document and can hide the actual vacancy cards.
+	for i := 0; i < 3; i++ {
 		decoded := html.UnescapeString(raw)
 		if decoded == raw {
 			break
 		}
 		raw = decoded
 	}
+	// Remove non-visible CSS and JavaScript before extracting text. Otherwise
+	// numeric selectors or script contents can be mistaken for vacancy IDs.
+	raw = scriptRE.ReplaceAllString(raw, " ")
+	raw = styleRE.ReplaceAllString(raw, " ")
 	text := blockRE.ReplaceAllString(raw, "$0\n")
 	text = tagRE.ReplaceAllString(text, "\n")
 	text = html.UnescapeString(text)
