@@ -27,6 +27,18 @@ O perfil informado no formulário é mantido apenas em memória durante a busca.
 
 A interface usa o mesmo pipeline de fontes, filtros, matching, score e deduplicação do CLI. A aplicação apenas encontra e apresenta vagas; não envia candidaturas nem mensagens para recrutadores.
 
+## Módulo de empregos locais (em desenvolvimento)
+
+A interface web também possui uma rota separada para o módulo local:
+
+```bash
+go run ./cmd/jobsearch web
+```
+
+Depois abra `http://localhost:8080/local-jobs` ou use o link **Empregos locais** na interface principal. Esse módulo usa como exemplo inicial cargo **Vendedora**, área **Vendas e comércio**, experiência **Sem preferência**, escolaridade **Qualquer**, local fixo **Maceió, Alagoas, Brasil** e modalidade **somente presencial**. Os filtros de cidade e modalidade são estritos: vagas de outras cidades, remotas, híbridas ou com modalidade desconhecida não são exibidas.
+
+O módulo reutiliza as fontes disponíveis, mas a cobertura de vagas presenciais em Maceió ainda depende de cada fonte. A página não executa buscas até o envio do formulário. O perfil não é salvo. Consulte `docs/LOCAL_JOBS_SPEC.md` para as regras e limitações.
+
 ## Como usar
 
 ### 1. Pré-requisitos
