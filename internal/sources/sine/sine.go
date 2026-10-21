@@ -132,36 +132,52 @@ func ParseListings(raw string) []domain.Job {
 // Some versions of the portal omit the visible #code from the rendered card.
 // In that case, recover cards from their visible "TITLE : N vaga(s)" heading.
 func parseListingsWithoutCodes(lines []string) []domain.Job {
+	// Inline HTML elements can split a visible heading across several lines.
+	// Flatten the cleaned text, then find the portal's "TITLE : N vaga(s)" pattern.
+	flat := strings.Join(lines, " ")
+	flat = strings.Join(strings.Fields(flat), " ")
+	headingRE := regexp.MustCompile(`(?i)([A-ZÀ-Ý0-9][A-ZÀ-Ý0-9 /().,'-]{3,150}?)\\s*:\\s*\\d+\\s*vaga(?:\\(s\\))?`)
+	matches := headingRE.FindAllStringSubmatchIndex(flat, -1)
 	out := []domain.Job{}
-	for i, line := range lines {
-		m := vacancyTitleRE.FindStringSubmatch(line)
-		if len(m) != 2 {
-			continue
-		}
-		title := strings.TrimSpace(m[1])
+	seen := map[string]bool{}
+	for i, match := range matches {
+		title := strings.TrimSpace(flat[match[2]:match[3]])
+		title = strings.Trim(title, " ·•")
 		if title == "" || strings.Contains(normalize(title), "total de vagas") {
 			continue
 		}
-		end := len(lines)
-		for j := i + 1; j < len(lines); j++ {
-			if vacancyTitleRE.MatchString(lines[j]) {
-				end = j
-				break
-			}
+		if len(title) > 160 {
+			title = title[len(title)-160:]
 		}
-		detail := strings.TrimSpace(strings.Join(lines[i+1:end], " "))
+		start := match[1]
+		end := len(flat)
+		if i+1 < len(matches) {
+			end = matches[i+1][0]
+		}
+		detail := strings.TrimSpace(flat[start:end])
 		if len(detail) > 1800 {
 			detail = detail[:1800]
 		}
-		if strings.Contains(normalize(detail), "inscricoes encerradas") {
+		normalizedDetail := normalize(detail)
+		if strings.Contains(normalizedDetail, "inscricoes encerradas") {
 			continue
 		}
-		// The title itself is stable enough for deduplication when the portal omits its code.
-		id := "sine-maceio:title:" + normalize(title)
+		deadline := ""
+		if m := dateRE.FindStringSubmatch(detail); len(m) == 2 {
+			deadline = m[1]
+			if due, err := time.Parse("02/01/2006", deadline); err == nil && due.Before(time.Now().Truncate(24*time.Hour)) {
+				continue
+			}
+		}
+		key := normalize(title)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
 		out = append(out, domain.Job{
-			ID: id, Source: "sine-maceio", Title: title, URL: PortalURL,
-			ApplyURL: PortalURL, Location: "Maceió, AL, Brasil", WorkplaceType: "Presencial",
-			Description: detail,
+			ID: "sine-maceio:title:" + key, Source: "sine-maceio", Title: title,
+			URL: PortalURL, ApplyURL: PortalURL, Location: "Maceió, AL, Brasil",
+			WorkplaceType: "Presencial", Description: detail, UpdatedAt: deadline,
 		})
 	}
 	return out
