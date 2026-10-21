@@ -101,8 +101,14 @@ func ParseListings(raw string) []domain.Job {
 		for _, next := range ids { if next[0] > match[0] { end = next[0]; break } }
 		detail := strings.TrimSpace(full[start:end])
 		if len(detail) > 1800 { detail = detail[:1800] }
+		if strings.Contains(normalize(detail), "inscricoes encerradas") { continue }
 		deadline := ""
-		if m := dateRE.FindStringSubmatch(detail); len(m) == 2 { deadline = m[1] }
+		if m := dateRE.FindStringSubmatch(detail); len(m) == 2 {
+			deadline = m[1]
+			if due, err := time.Parse("02/01/2006", deadline); err == nil && due.Before(time.Now().Truncate(24*time.Hour)) {
+				continue
+			}
+		}
 		out = append(out, domain.Job{
 			ID: "sine-maceio:" + id, Source: "sine-maceio", Title: title,
 			URL: PortalURL, ApplyURL: PortalURL, Location: "Maceió, AL, Brasil",
