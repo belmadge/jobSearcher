@@ -68,3 +68,15 @@ func TestParseListingsHandlesHeadingSplitAcrossHTMLTags(t *testing.T) {
 		t.Fatalf("expected listing details, got %q", jobs[0].Description)
 	}
 }
+
+func TestParseListingsRemovesEscapedStyleBeforeParsing(t *testing.T) {
+	// Some portal responses HTML-escape the page, including the style tag.
+	raw := `&lt;html&gt;&lt;head&gt;&lt;style&gt;.panel { background-color: white; }&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;div&gt;ENCANADOR - MANGABEIRAS : 2 vaga(s)&lt;/div&gt;&lt;div&gt;#7798&lt;/div&gt;&lt;div&gt;Bairro da vaga: Jatiúca&lt;/div&gt;&lt;div&gt;Data limite para se candidatar: 23/10/2026&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;`
+	jobs := ParseListings(raw)
+	if len(jobs) != 1 {
+		t.Fatalf("got %d jobs, want 1", len(jobs))
+	}
+	if !strings.Contains(strings.ToLower(jobs[0].Title), "encanador") {
+		t.Fatalf("unexpected title: %q", jobs[0].Title)
+	}
+}
