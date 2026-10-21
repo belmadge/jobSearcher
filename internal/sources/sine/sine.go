@@ -123,6 +123,8 @@ func normalizeTerms(values []string) []string {
 	out := []string{}
 	for _, value := range values {
 		v := normalize(value)
+		if v == "vendedora" { out = append(out, "vendedora", "vendedor"); continue }
+		if v == "vendedor" { out = append(out, "vendedor", "vendedora"); continue }
 		if v != "" { out = append(out, v) }
 	}
 	return out
