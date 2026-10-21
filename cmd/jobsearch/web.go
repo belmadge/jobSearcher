@@ -85,6 +85,7 @@ type webView struct { Roles, Skills, Experience, Seniority, Error string; Search
 
 func startWebServer(ctx context.Context, boards config.Boards) error {
  mux:=http.NewServeMux()
+ mux.HandleFunc("/local-jobs",func(w http.ResponseWriter,r *http.Request){handleLocalJobs(ctx,boards,w,r)})
  mux.HandleFunc("/",func(w http.ResponseWriter,r *http.Request){
   if r.Method != http.MethodGet && r.Method != http.MethodPost {
    http.Error(w,"método não permitido",http.StatusMethodNotAllowed)
