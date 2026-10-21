@@ -45,7 +45,7 @@ func SearchTerms(p Profile) []string {
 	terms := []string{p.Title}
 	switch normalize(p.Title) {
 	case "vendedora", "vendedor", "vendas":
-		terms = append(terms, "consultora de vendas", "consultor de vendas", "atendente de loja", "vendedora de loja")
+		terms = append(terms, "vendedor", "consultora de vendas", "consultor de vendas", "atendente de loja", "vendedora de loja")
 	case "recepcionista":
 		terms = append(terms, "recepcionista de clinica", "recepcionista hospitalar", "atendente de clinica")
 	case "atendente", "atendimento ao publico":
