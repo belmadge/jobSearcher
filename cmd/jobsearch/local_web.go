@@ -25,17 +25,8 @@ const localJobsPage = `<!doctype html>
 </style></head><body><main class="wrap">
 <header class="nav"><a class="brand" href="/"><span class="logo">JS</span><span>JobSearcher</span></a><span class="pill">⌖ Maceió, AL · Presencial</span></header>
 <section class="hero"><div><div class="eyebrow">Empregos locais</div><h1>Seu próximo trabalho pode estar <span>perto.</span></h1><p>Encontre oportunidades de vendas, atendimento, saúde e outras áreas em Maceió. Sem currículo, sem cadastro e sem salvar seus dados pessoais.</p></div><div class="art" aria-hidden="true">⌂ ✦</div></section>
-<section class="panel"><h2>Buscar vagas presenciais</h2><p>Local e modalidade são fixos para manter os resultados dentro dos critérios deste módulo.</p>
-<form method="post" autocomplete="off" class="form">
-<div class="field"><label for="title">Cargo desejado</label><input id="title" name="title" value="{{.Title}}" required autocomplete="off" placeholder="Ex.: Vendedora"></div>
-<div class="field"><label for="category">Área profissional</label><select id="category" name="category"><option {{if eq .Category "Vendas e comércio"}}selected{{end}}>Vendas e comércio</option><option {{if eq .Category "Saúde e clínicas"}}selected{{end}}>Saúde e clínicas</option><option {{if eq .Category "Atendimento ao público"}}selected{{end}}>Atendimento ao público</option><option {{if eq .Category "Administrativo"}}selected{{end}}>Administrativo</option><option {{if eq .Category "Hotelaria e serviços"}}selected{{end}}>Hotelaria e serviços</option><option {{if eq .Category "Todas as áreas"}}selected{{end}}>Todas as áreas</option></select></div>
-<div class="field"><label for="experience">Experiência</label><select id="experience" name="experience"><option value="any" {{if eq .Experience "any"}}selected{{end}}>Sem preferência</option><option value="none" {{if eq .Experience "none"}}selected{{end}}>Sem experiência / primeiro emprego</option><option value="required" {{if eq .Experience "required"}}selected{{end}}>Priorizar vagas com experiência</option></select></div>
-<div class="field"><label for="education">Escolaridade</label><select id="education" name="education"><option value="any" {{if eq .Education "any"}}selected{{end}}>Qualquer</option><option value="elementary" {{if eq .Education "elementary"}}selected{{end}}>Ensino fundamental</option><option value="high_school" {{if eq .Education "high_school"}}selected{{end}}>Ensino médio</option><option value="higher" {{if eq .Education "higher"}}selected{{end}}>Ensino superior</option></select></div>
-<div class="field"><label>Localização fixa</label><div class="fixed">Maceió, Alagoas, Brasil</div></div><div class="field"><label>Modalidade fixa</label><div class="fixed">Presencial — sem remoto ou híbrido</div></div>
-<button class="submit" id="localSearchButton" type="submit">Encontrar vagas em Maceió</button>
-</form>{{if .Error}}<div class="error">{{.Error}}</div>{{end}}<p class="note">Os campos são usados apenas para esta busca. "Sem preferência" e "Qualquer" não excluem vagas por experiência ou escolaridade.</p>
-</section>
-{{if .Searched}}<section class="results"><h2>{{.Count}} vagas presenciais elegíveis</h2><p>Foram recebidas {{.Fetched}} vagas brutas das fontes conectadas; {{.Rejected}} foram descartadas pelos filtros locais. Confirme os detalhes na publicação original.</p><div class="grid">{{range .Jobs}}<article class="card"><div><span class="score">{{.LocalScore}}% de alinhamento</span> <span class="source">{{.Source}}</span></div><h3>{{.Title}}</h3><strong>{{.Company}}</strong><div class="meta">⌖ {{.Location}} · Presencial</div><p>{{.Description}}</p><a class="link" href="{{.URL}}" target="_blank" rel="noopener">Ver publicação original ↗</a></article>{{else}}<div class="empty">Nenhuma vaga encontrada com todos os critérios. Isso não significa que não existam oportunidades; as fontes conectadas podem não cobrir todas as vagas locais.</div>{{end}}</div></section>{{end}}
+<section class="panel"><h2>Quadro de vagas</h2><p>Exibindo as oportunidades encontradas na fonte pública, sem filtros por cargo, área, experiência, escolaridade ou modalidade.</p><form method="post"><button class="submit" id="localSearchButton" type="submit">Atualizar quadro de vagas</button></form>{{if .Error}}<div class="error">{{.Error}}</div>{{end}}</section>
+{{if .Searched}}<section class="results"><h2>{{.Count}} vagas encontradas</h2><p>Vagas lidas diretamente da fonte pública. Confira os detalhes no anúncio original.</p><div class="grid">{{range .Jobs}}<article class="card"><div><span class="source">{{.Source}}</span></div><h3>{{.Title}}</h3><strong>{{.Company}}</strong><div class="meta">⌖ {{.Location}} · Presencial</div><p>{{.Description}}</p><a class="link" href="{{.URL}}" target="_blank" rel="noopener">Ver publicação original ↗</a></article>{{else}}<div class="empty">A fonte não entregou anúncios que o leitor conseguiu reconhecer. Isso pode ser uma limitação da extração da página, não necessariamente ausência de vagas.</div>{{end}}</div></section>{{end}}
 </main><script>const f=document.querySelector('form'),b=document.getElementById('localSearchButton');if(f&&b)f.addEventListener('submit',()=>{b.disabled=true;b.textContent='Buscando vagas...'})</script></body></html>`
 
 type localJobResult struct {
@@ -44,7 +35,7 @@ type localJobResult struct {
 }
 
 type localJobsView struct {
-	Title, Category, Experience, Education, Error string
+	Error string
 	Searched bool
 	Count int
 	Fetched int
@@ -58,67 +49,38 @@ func handleLocalJobs(ctx context.Context, boards config.Boards, w http.ResponseW
 		return
 	}
 	p := localjobs.DefaultProfile()
-	v := localJobsView{Title:p.Title, Category:p.Category, Experience:p.Experience, Education:p.Education}
+	v := localJobsView{}
 	if r.Method == http.MethodPost {
 		if err := r.ParseForm(); err != nil {
 			v.Error = "Não foi possível ler os dados enviados."
 			renderLocalJobs(w, v)
 			return
 		}
-		p.Title = strings.TrimSpace(r.FormValue("title"))
-		p.Category = strings.TrimSpace(r.FormValue("category"))
-		p.Experience = r.FormValue("experience")
-		p.Education = r.FormValue("education")
-		v.Title, v.Category, v.Experience, v.Education = p.Title, p.Category, p.Experience, p.Education
-		if p.Title == "" {
-			v.Error = "Informe o cargo desejado."
-		} else if !validLocalChoice(p.Experience, "any", "none", "required") {
-			v.Error = "Selecione uma opção válida para experiência."
-		} else if !validLocalChoice(p.Education, "any", "elementary", "high_school", "higher") {
-			v.Error = "Selecione uma opção válida para escolaridade."
+		// This board deliberately applies no job filters: show every vacancy
+		// the public source parser can extract.
+		query := sources.Query{Location: "Maceió, AL, Brazil"}
+		jobs, err := sine.NewClient().FetchJobs(ctx, query)
+		if err != nil {
+			v.Error = "Não foi possível consultar o quadro de vagas: " + err.Error()
 		} else {
-			p.City, p.State, p.Country = "Maceió", "AL", "Brasil"
-			// Fetch the full SINE listing instead of filtering at the source by the
-			// typed title. Title/category/experience/education should rank results,
-			// not hide potentially useful vacancies from the user.
-			query := sources.Query{Location: "Maceió, AL, Brazil"}
-			// Use the public SINE Maceió portal as a free source; no API key or paid plan is required.
-			jobs, err := sine.NewClient().FetchJobs(ctx, query)
-			if err != nil && len(jobs) == 0 {
-				v.Error = "Não foi possível consultar as fontes: " + err.Error()
-			} else {
-				if err != nil {
-					v.Error = "A fonte de vagas retornou uma falha; resultados parciais foram mantidos. Detalhes: " + err.Error()
+			v.Fetched = len(jobs)
+			seen := map[string]bool{}
+			for _, job := range jobs {
+				key := strings.TrimSpace(job.ID)
+				if key == "" {
+					key = dedupe.CanonicalURL(job.URL) + "|" + job.Title + "|" + job.Description
 				}
-				v.Fetched = len(jobs)
-				seen := map[string]bool{}
-				for _, job := range jobs {
-					if !localjobs.Eligible(job, p) {
-						v.Rejected++
-						continue
-					}
-					score := localjobs.MatchScore(job, p)
-					key := dedupe.CanonicalURL(job.URL)
-					if key == "" || seen[key] {
-						continue
-					}
-					seen[key] = true
-					v.Jobs = append(v.Jobs, localJobResult{Job: job, LocalScore: score})
-				}
-				sort.SliceStable(v.Jobs, func(i, j int) bool {
-					if v.Jobs[i].LocalScore != v.Jobs[j].LocalScore {
-						return v.Jobs[i].LocalScore > v.Jobs[j].LocalScore
-					}
-					if v.Jobs[i].Title != v.Jobs[j].Title {
-						return v.Jobs[i].Title < v.Jobs[j].Title
-					}
-					return v.Jobs[i].Company < v.Jobs[j].Company
-				})
-				v.Searched = true
-				v.Count = len(v.Jobs)
-				// Do not repopulate the form after a successful search.
-				v.Title, v.Category, v.Experience, v.Education = "", "", "", ""
+				if seen[key] { continue }
+				seen[key] = true
+				v.Jobs = append(v.Jobs, localJobResult{Job: job})
 			}
+			sort.SliceStable(v.Jobs, func(i, j int) bool {
+				if v.Jobs[i].Title != v.Jobs[j].Title { return v.Jobs[i].Title < v.Jobs[j].Title }
+				return v.Jobs[i].ID < v.Jobs[j].ID
+			})
+			v.Searched = true
+			v.Count = len(v.Jobs)
+		}
 		}
 	}
 	renderLocalJobs(w, v)
