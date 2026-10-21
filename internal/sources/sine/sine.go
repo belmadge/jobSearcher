@@ -132,7 +132,7 @@ func normalizeTerms(values []string) []string {
 
 func normalize(value string) string {
 	value = strings.ToLower(value)
-	return strings.NewReplacer("á","a","à","a","â","a","ã","a","é","e","ê","e","í","i","ó","o","ô","õ","o","ú","u","ç","c").Replace(value)
+	return strings.NewReplacer("á","a","à","a","â","a","ã","a","é","e","ê","e","í","i","ó","o","ô","o","õ","o","ú","u","ç","c").Replace(value)
 }
 
 var _ sources.JobSource = (*Client)(nil)
