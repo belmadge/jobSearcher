@@ -31,3 +31,21 @@ func TestFetchJobsUsesContextAndFiltersTerms(t *testing.T) {
 	if err != nil { t.Fatal(err) }
 	if len(jobs) != 1 || !strings.Contains(strings.ToLower(jobs[0].Title), "vendedor") { t.Fatalf("unexpected jobs: %#v", jobs) }
 }
+
+func TestParseListingsFallsBackWhenVacancyCodeIsMissing(t *testing.T) {
+	html := `<html><body>
+		<div>ENCANADOR - MANGABEIRAS : 2 vaga(s) Ver mais...</div>
+		<div>Escolaridade mínima: Sem escolaridade - não alfabetizado</div>
+		<div>Bairro da vaga: Jatiúca</div>
+	</body></html>`
+	jobs := ParseListings(html)
+	if len(jobs) != 1 {
+		t.Fatalf("got %d jobs, want 1", len(jobs))
+	}
+	if !strings.Contains(strings.ToLower(jobs[0].Title), "encanador") {
+		t.Fatalf("unexpected title: %q", jobs[0].Title)
+	}
+	if !strings.Contains(jobs[0].Description, "Bairro da vaga") {
+		t.Fatalf("expected listing details, got %q", jobs[0].Description)
+	}
+}
