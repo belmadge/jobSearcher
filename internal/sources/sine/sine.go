@@ -136,7 +136,7 @@ func parseListingsWithoutCodes(lines []string) []domain.Job {
 	// Flatten the cleaned text, then find the portal's "TITLE : N vaga(s)" pattern.
 	flat := strings.Join(lines, " ")
 	flat = strings.Join(strings.Fields(flat), " ")
-	headingRE := regexp.MustCompile(`(?i)([A-ZÀ-Ý0-9][A-ZÀ-Ý0-9 /().,'-]{3,150}?)\\s*:\\s*\\d+\\s*vaga(?:\\(s\\))?`)
+	headingRE := regexp.MustCompile(`(?i)([A-ZÀ-Ý0-9][A-ZÀ-Ý0-9 /().,'-]{3,150}?)\s*:\s*\d+\s*vaga(?:\(s\))?`)
 	matches := headingRE.FindAllStringSubmatchIndex(flat, -1)
 	out := []domain.Job{}
 	seen := map[string]bool{}
