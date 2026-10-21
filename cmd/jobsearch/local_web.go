@@ -76,7 +76,10 @@ func handleLocalJobs(ctx context.Context, boards config.Boards, w http.ResponseW
 		} else {
 			p.City, p.State, p.Country = "Maceió", "AL", "Brasil"
 			terms := localjobs.SearchTerms(p)
-			jobs, err := fetchSources(ctx, "all", sources.Query{Terms: terms, Location: "Maceió, AL, Brazil"})
+			tokens, sites := []string{}, []string{}
+			for _, board := range boards.Greenhouse { if board.Enabled && strings.TrimSpace(board.Token) != "" { tokens = append(tokens, board.Token) } }
+			for _, site := range boards.Lever { if site.Enabled && strings.TrimSpace(site.Site) != "" { sites = append(sites, site.Site) } }
+			jobs, err := fetchSources(ctx, "all", sources.Query{Terms: terms, Location: "Maceió, AL, Brazil", BoardTokens: tokens, LeverSites: sites})
 			if err != nil && len(jobs) == 0 {
 				v.Error = "Não foi possível consultar as fontes: " + err.Error()
 			} else {
