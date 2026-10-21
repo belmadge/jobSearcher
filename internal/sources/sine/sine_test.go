@@ -11,7 +11,7 @@ import (
 )
 
 func TestParseListingsExtractsSINEVacancy(t *testing.T) {
-	html := `<html><body><div>VENDEDOR - ANTARES</div><div>Ver mais...</div><div>#7756</div><div>Escolaridade mínima: Nível Médio completo</div><div>Bairro da vaga: Antares</div><div>Data limite para se candidatar: 16/10/2026</div></body></html>`
+	html := `<html><body><div>VENDEDOR - ANTARES</div><div>Ver mais...</div><div>#7756</div><div>Escolaridade mínima: Nível Médio completo</div><div>Bairro da vaga: Antares</div><div>Data limite para se candidatar: 31/12/2026</div></body></html>`
 	jobs := ParseListings(html)
 	if len(jobs) != 1 { t.Fatalf("got %d jobs, want 1", len(jobs)) }
 	if !strings.Contains(strings.ToLower(jobs[0].Title), "vendedor") { t.Fatalf("unexpected title: %q", jobs[0].Title) }
