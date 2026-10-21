@@ -49,3 +49,22 @@ func TestParseListingsFallsBackWhenVacancyCodeIsMissing(t *testing.T) {
 		t.Fatalf("expected listing details, got %q", jobs[0].Description)
 	}
 }
+
+func TestParseListingsHandlesHeadingSplitAcrossHTMLTags(t *testing.T) {
+	html := `<html><body>
+		<div><span>ENCANADOR - </span><strong>MANGABEIRAS</strong><span> : 2 vaga(s)</span></div>
+		<div>Escolaridade mínima: Sem escolaridade - não alfabetizado</div>
+		<div>Bairro da vaga: Jatiúca</div>
+		<div>Data limite para se candidatar: 23/10/2026</div>
+	</body></html>`
+	jobs := ParseListings(html)
+	if len(jobs) != 1 {
+		t.Fatalf("got %d jobs, want 1", len(jobs))
+	}
+	if !strings.Contains(strings.ToLower(jobs[0].Title), "encanador") {
+		t.Fatalf("unexpected title: %q", jobs[0].Title)
+	}
+	if !strings.Contains(strings.ToLower(jobs[0].Description), "jatiúca") {
+		t.Fatalf("expected listing details, got %q", jobs[0].Description)
+	}
+}
